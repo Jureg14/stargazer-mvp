@@ -1,4 +1,4 @@
-import { CelestialTarget, MoonInfo, TwilightTimes } from './astro';
+import { BortleInfo, CelestialTarget, MeteorShower, MoonInfo, SatellitePass, TwilightTimes } from './astro';
 import { HourlyWeatherRecord } from './weather';
 
 export interface HourlyScoreBreakdown {
@@ -31,6 +31,8 @@ export interface ObservationWindow {
   highlights: string[];
   narrative: string;
   targets: CelestialTarget[];
+  satellites?: SatellitePass[];
+  meteors?: MeteorShower[];
 }
 
 export interface StargazeItineraryResponse {
@@ -44,10 +46,13 @@ export interface StargazeItineraryResponse {
   queryDate: string;
   nightQualityScore: number; // 0-100 overall night rating
   nightSummary: string;
+  bortle: BortleInfo;
   twilight: TwilightTimes;
   moon: MoonInfo;
   bestWindow: ObservationWindow | null;
   windows: ObservationWindow[];
+  satellites: SatellitePass[];
+  meteorShowers: MeteorShower[];
   targets: CelestialTarget[];
   hourlyTimeline: HourlyScoreBreakdown[];
   weatherRecords?: HourlyWeatherRecord[];

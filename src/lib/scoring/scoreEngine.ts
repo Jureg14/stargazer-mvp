@@ -1,7 +1,8 @@
 import { Body, Equator, Horizon, Observer } from 'astronomy-engine';
-import { CelestialTarget, MoonInfo } from '../types/astro';
+import { BortleClass, CelestialTarget, MoonInfo } from '../types/astro';
 import { HourlyScoreBreakdown } from '../types/itinerary';
 import { HourlyWeatherRecord } from '../types/weather';
+import { getBortleInfo } from '../astro/bortle';
 
 export interface EvaluatedHour {
   time: Date;
@@ -17,7 +18,7 @@ export interface EvaluatedHour {
 }
 
 /**
- * Evaluates observation quality for an individual hour.
+ * Evaluates observation quality for an individual hour including Bortle light pollution.
  */
 export function evaluateHourlyQuality(
   time: Date,
@@ -25,7 +26,8 @@ export function evaluateHourlyQuality(
   observer: Observer,
   moonInfo: MoonInfo,
   planets: CelestialTarget[],
-  dsoTargets: CelestialTarget[]
+  dsoTargets: CelestialTarget[],
+  userBortle: BortleClass = 4
 ): EvaluatedHour {
   // 1. Sun Altitude & Darkness
   const sunEq = Equator(Body.Sun, time, observer, true, true);
@@ -58,8 +60,12 @@ export function evaluateHourlyQuality(
     }
   }
 
-  // Evaluate DSOs & Milky Way at this hour
+  // Evaluate DSOs & Milky Way at this hour (respecting user Bortle filter)
   for (const d of dsoTargets) {
+    if (d.minBortleClass && userBortle > d.minBortleClass) {
+      continue; // Skip if light pollution renders object invisible
+    }
+
     const dEq = Equator(d.body ?? Body.Star1, time, observer, true, true);
     const dHor = Horizon(time, observer, dEq.ra, dEq.dec, 'normal');
     if (dHor.altitude > 20) {
@@ -118,8 +124,9 @@ export function evaluateHourlyQuality(
     else score = 0; // heavy overcast
   }
 
-  // Lunar glare factor (only applies when dark and cloud isn't overcast)
+  // Lunar glare & Bortle Light pollution (only applies when dark and cloud isn't overcast)
   if (score > 0) {
+    // Lunar factor
     if (moonAlt <= 0) {
       score += 15; // Moon below horizon
     } else {
@@ -128,6 +135,10 @@ export function evaluateHourlyQuality(
       else if (moonIllum <= 0.70) score -= 15;
       else score -= 25; // bright moon glare
     }
+
+    // Bortle light pollution penalty
+    const bortleInfo = getBortleInfo(userBortle);
+    score += Math.round(bortleInfo.penaltyScore * 0.4); // Scale penalty to score
 
     // Atmospheric conditions
     if (seeingQuality === 'Excellent') score += 10;

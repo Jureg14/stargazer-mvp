@@ -6,7 +6,7 @@ import {
   Illumination,
   Observer,
 } from 'astronomy-engine';
-import { CelestialTarget } from '../types/astro';
+import { AltitudePoint, CelestialTarget } from '../types/astro';
 
 interface PlanetConfig {
   id: string;
@@ -23,7 +23,7 @@ const PLANETS: PlanetConfig[] = [
 ];
 
 /**
- * Calculates visibility metrics for major observable planets.
+ * Calculates visibility metrics and altitude curve for major observable planets.
  */
 export function calculatePlanets(date: Date, observer: Observer): CelestialTarget[] {
   return PLANETS.map(({ id, name, body, notes }) => {
@@ -31,6 +31,22 @@ export function calculatePlanets(date: Date, observer: Observer): CelestialTarge
     const hor = Horizon(date, observer, eq.ra, eq.dec, 'normal');
     const illum = Illumination(body, date);
     const constellationInfo = Constellation(eq.ra, eq.dec);
+
+    // Sample altitude progression across night (14 hours)
+    const altitudeHistory: AltitudePoint[] = [];
+    const baseTime = new Date(date);
+    baseTime.setUTCHours(18, 0, 0, 0);
+
+    for (let h = 0; h < 14; h++) {
+      const stepDate = new Date(baseTime.getTime() + h * 3600 * 1000);
+      const stepEq = Equator(body, stepDate, observer, true, true);
+      const stepHor = Horizon(stepDate, observer, stepEq.ra, stepEq.dec, 'normal');
+      altitudeHistory.push({
+        time: stepDate.toISOString(),
+        altitude: Math.round(stepHor.altitude * 10) / 10,
+        isAboveHorizon: stepHor.altitude > 0,
+      });
+    }
 
     return {
       id,
@@ -44,6 +60,7 @@ export function calculatePlanets(date: Date, observer: Observer): CelestialTarge
       isAboveHorizon: hor.altitude > 0,
       isOptimal: hor.altitude >= 25,
       notes,
+      altitudeHistory,
     };
   });
 }

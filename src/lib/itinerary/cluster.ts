@@ -1,5 +1,5 @@
 import { EvaluatedHour } from '../scoring/scoreEngine';
-import { CelestialTarget, MoonInfo } from '../types/astro';
+import { CelestialTarget, MeteorShower, MoonInfo, SatellitePass } from '../types/astro';
 import { ObservationWindow } from '../types/itinerary';
 import { generateWindowNarrative } from './formatter';
 
@@ -8,27 +8,29 @@ import { generateWindowNarrative } from './formatter';
  */
 export function clusterObservationWindows(
   hours: EvaluatedHour[],
-  moonInfo: MoonInfo
+  moonInfo: MoonInfo,
+  satellites: SatellitePass[] = [],
+  meteors: MeteorShower[] = []
 ): ObservationWindow[] {
   const windows: ObservationWindow[] = [];
   let currentGroup: EvaluatedHour[] = [];
 
   for (const h of hours) {
-    // Eligible if score >= 55, clouds <= 45%, and sun is below horizon
-    const isEligible = h.score >= 55 && h.weather.cloudCover <= 45 && h.sunAlt <= -6;
+    // Eligible if score >= 45, clouds <= 45%, and sun is below horizon
+    const isEligible = h.score >= 45 && h.weather.cloudCover <= 45 && h.sunAlt <= -6;
 
     if (isEligible) {
       currentGroup.push(h);
     } else {
       if (currentGroup.length > 0) {
-        windows.push(buildWindowFromGroup(currentGroup, moonInfo, windows.length + 1));
+        windows.push(buildWindowFromGroup(currentGroup, moonInfo, windows.length + 1, satellites, meteors));
         currentGroup = [];
       }
     }
   }
 
   if (currentGroup.length > 0) {
-    windows.push(buildWindowFromGroup(currentGroup, moonInfo, windows.length + 1));
+    windows.push(buildWindowFromGroup(currentGroup, moonInfo, windows.length + 1, satellites, meteors));
   }
 
   // Sort windows by average score descending
@@ -38,7 +40,9 @@ export function clusterObservationWindows(
 function buildWindowFromGroup(
   group: EvaluatedHour[],
   moonInfo: MoonInfo,
-  index: number
+  index: number,
+  satellites: SatellitePass[],
+  meteors: MeteorShower[]
 ): ObservationWindow {
   const startDate = group[0].time;
   const endDate = group[group.length - 1].time;
@@ -91,6 +95,16 @@ function buildWindowFromGroup(
     }
   });
 
+  // Check matching satellite passes during this window
+  const matchingSats = satellites.filter((s) => {
+    const pTime = new Date(s.peakTime).getTime();
+    return pTime >= startDate.getTime() && pTime <= intervalEnd.getTime();
+  });
+
+  matchingSats.forEach((s) => {
+    highlightsSet.add(`${s.satelliteName.split(' ')[0]} pass (max alt ${s.maxAltitudeDeg}°)`);
+  });
+
   const highlights = Array.from(highlightsSet);
   if (highlights.length === 0) {
     highlights.push('Constellations and bright stars');
@@ -113,6 +127,8 @@ function buildWindowFromGroup(
     moonStatus,
     highlights,
     targets,
+    satellites: matchingSats,
+    meteors,
   };
 
   const narrative = generateWindowNarrative(partialWindow);
@@ -132,5 +148,7 @@ function buildWindowFromGroup(
     highlights,
     narrative,
     targets,
+    satellites: matchingSats,
+    meteors,
   };
 }

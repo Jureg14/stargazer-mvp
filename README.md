@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌌 Stargazer MVP
 
-## Getting Started
+> **Intelligent Stargazing Itinerary Planner** — Automatically calculates visible celestial events, lunar glare, twilight phases, and real-time weather forecasts to generate actionable, human-friendly observing itineraries.
 
-First, run the development server:
+---
 
+## 🚀 Quick Start: How to Start the Local Server
+
+### 1. Install Dependencies
+If you haven't installed dependencies yet:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Start the Development Server
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> **Note for Windows PowerShell Users**: If PowerShell script execution is restricted on your machine, you can run:
+> ```powershell
+> npm.cmd run dev
+> # or via cmd:
+> cmd.exe /c "npm run dev"
+> ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Open in Browser
+Visit **[http://localhost:3000](http://localhost:3000)** in your web browser.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📖 How to Use Stargazer
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 📍 Step 1: Set Your Observing Location
+- **Automatic GPS**: Click the **"My Location"** button (🎯) to automatically detect your coordinates using the browser's Geolocation API.
+- **City Search**: Type any city name (e.g. *Tokyo*, *Reykjavik*, *London*, *São Paulo*) in the search bar and select it from the autocomplete dropdown.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 📅 Step 2: Choose Your Target Night
+- Use the **Target Night** date picker in the top right to check conditions for tonight or future dates.
 
-## Deploy on Vercel
+### 📊 Step 3: Review Sky Quality & Lunar Status
+- **Sky Quality Index (0–100)**: A composite rating combining darkness, cloud cover, lunar interference, and atmospheric seeing.
+- **Lunar Card**: Displays live Moon illumination percentage, phase name (e.g. *Full Moon*, *Waxing Crescent*), apparent magnitude, and moonrise/moonset times.
+- **Astronomical Darkness**: Shows exact start and end times for true astronomical night (Sun depression $\le -18^\circ$).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### ⏱️ Step 4: Explore Prime Observation Windows
+- View clustered time blocks (e.g., `21:00 – 23:30`) with average cloud cover, seeing stability rating, and clear natural-language narratives:
+  > *"Thursday 21:00–23:30 will have: 8% cloud cover, low moonlight, Saturn at 47° altitude, and excellent seeing conditions."*
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 📈 Step 5: Inspect the Night Sky Spectrum
+- An interactive hourly bar chart from dusk to dawn showing quality score bars and cloud indicators. Click any bar to inspect specific conditions and visible targets for that exact hour.
+
+### 🔭 Step 6: Track Celestial Targets
+- Explore real-time cards for visible planets (**Venus**, **Mars**, **Jupiter**, **Saturn**), the **Milky Way Galactic Center**, and prominent Deep-Sky Objects (**Andromeda Galaxy M31**, **Orion Nebula M42**, **Pleiades M45**, **Hercules Cluster M13**) with altitude, azimuth compass direction, and visual magnitude.
+
+---
+
+## 📡 API Endpoints
+
+| Endpoint | Method | Description |
+| :--- | :---: | :--- |
+| `/api/stargaze` | `POST` | Accepts `{ lat, lon, date, locationName }` and returns the complete ephemeris, weather forecast, score timeline, and observation windows. |
+| `/api/geocode?q={city}` | `GET` | Autocomplete proxy querying Open-Meteo Geocoding API for city coordinates. |
+
+---
+
+## 🛠️ Technology Stack
+
+- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/) + [React 19](https://react.dev/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) with cosmic dark theme & glassmorphism
+- **Ephemeris Engine**: [`astronomy-engine`](https://github.com/cosinekitty/astronomy) (J2000 coordinates, topocentric horizons, twilight milestones, lunar illumination)
+- **Weather Forecast**: [Open-Meteo API](https://open-meteo.com/) (hourly multi-layer cloud cover, visibility, wind speed, relative humidity, dew point)
+- **Date Handling**: [`date-fns`](https://date-fns.org/)
+
+---
+
+## 📜 Available Scripts
+
+- `npm run dev`: Starts the Next.js development server on `http://localhost:3000`.
+- `npm run build`: Compiles the optimized production bundle.
+- `npm run start`: Starts the production server.
+- `npm run lint`: Runs ESLint checks across the codebase.

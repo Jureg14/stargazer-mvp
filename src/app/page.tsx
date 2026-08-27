@@ -6,11 +6,16 @@ import { LocationSearch, LocationState } from '@/components/LocationSearch';
 import { SkyConditionsHero } from '@/components/SkyConditionsHero';
 import { ItineraryTimeline } from '@/components/ItineraryTimeline';
 import { HourlyTimelineBar } from '@/components/HourlyTimelineBar';
+import { AltitudeChart } from '@/components/AltitudeChart';
+import { SatellitePasses } from '@/components/SatellitePasses';
+import { MeteorShowers } from '@/components/MeteorShowers';
 import { CelestialGrid } from '@/components/CelestialGrid';
+import { BortleClass } from '@/lib/types/astro';
 import { StargazeItineraryResponse } from '@/lib/types/itinerary';
 
 export default function HomePage() {
   const [date, setDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [bortle, setBortle] = useState<BortleClass>(4);
   const [location, setLocation] = useState<LocationState>({
     lat: -23.5505,
     lon: -46.6333,
@@ -21,8 +26,8 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const initialLoadDone = useRef(false);
 
-  // Fetch stargazing plan when location or date changes
-  const fetchPlan = useCallback(async (loc: LocationState, queryDate: string) => {
+  // Fetch stargazing plan when location, date, or Bortle changes
+  const fetchPlan = useCallback(async (loc: LocationState, queryDate: string, userBortle: BortleClass) => {
     setLoading(true);
     setError(null);
 
@@ -35,6 +40,7 @@ export default function HomePage() {
           lon: loc.lon,
           date: queryDate,
           locationName: loc.name,
+          bortleClass: userBortle,
         }),
       });
 
@@ -68,36 +74,45 @@ export default function HomePage() {
               name: 'Current Location',
             };
             setLocation(userLoc);
-            void fetchPlan(userLoc, date);
+            void fetchPlan(userLoc, date, bortle);
           },
           () => {
-            // If denied or unavailable, fetch with default location
-            void fetchPlan(location, date);
+            void fetchPlan(location, date, bortle);
           },
           { timeout: 5000 }
         );
       } else {
-        void fetchPlan(location, date);
+        void fetchPlan(location, date, bortle);
       }
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [fetchPlan, date, location]);
+  }, [fetchPlan, date, location, bortle]);
 
   const handleLocationChange = (newLoc: LocationState) => {
     setLocation(newLoc);
-    void fetchPlan(newLoc, date);
+    void fetchPlan(newLoc, date, bortle);
   };
 
   const handleDateChange = (newDate: string) => {
     setDate(newDate);
-    void fetchPlan(location, newDate);
+    void fetchPlan(location, newDate, bortle);
+  };
+
+  const handleBortleChange = (newBortle: BortleClass) => {
+    setBortle(newBortle);
+    void fetchPlan(location, date, newBortle);
   };
 
   return (
     <div className="min-h-screen flex flex-col justify-between text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200">
       <div>
-        <Header date={date} onDateChange={handleDateChange} />
+        <Header
+          date={date}
+          onDateChange={handleDateChange}
+          bortle={bortle}
+          onBortleChange={handleBortleChange}
+        />
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
           {/* Location Search Bar */}
@@ -112,7 +127,7 @@ export default function HomePage() {
             <div className="bg-rose-950/70 border border-rose-800 text-rose-200 px-4 py-3 rounded-2xl text-xs sm:text-sm flex items-center justify-between">
               <span>⚠️ {error}</span>
               <button
-                onClick={() => void fetchPlan(location, date)}
+                onClick={() => void fetchPlan(location, date, bortle)}
                 className="underline hover:text-white ml-3 font-semibold cursor-pointer"
               >
                 Retry
@@ -123,10 +138,10 @@ export default function HomePage() {
           {/* Loading Indicator Banner */}
           {loading && !plan && (
             <div className="glass-panel rounded-2xl p-12 text-center space-y-3 animate-pulse">
-              <div className="text-4xl animate-bounce">🌌</div>
-              <h2 className="text-lg font-bold text-white">Analyzing Night Sky Conditions</h2>
+              <div className="text-4xl animate-bounce">🛰️</div>
+              <h2 className="text-lg font-bold text-white">Calculating v2 Celestial Ephemeris</h2>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Computing planetary positions, lunar glare, twilight thresholds, and cloud models...
+                Tracking ISS passes, active meteor showers, Bortle sky models, and planetary orbits...
               </p>
             </div>
           )}
@@ -146,6 +161,21 @@ export default function HomePage() {
               {/* Itinerary Timeline Windows */}
               <ItineraryTimeline windows={plan.windows} isLoading={loading} />
 
+              {/* Visible Satellite Passes (ISS & Tiangong) */}
+              {plan.satellites && plan.satellites.length > 0 && (
+                <SatellitePasses passes={plan.satellites} />
+              )}
+
+              {/* Active Meteor Showers */}
+              {plan.meteorShowers && plan.meteorShowers.length > 0 && (
+                <MeteorShowers showers={plan.meteorShowers} />
+              )}
+
+              {/* Interactive Altitude Progression Curve */}
+              {plan.targets && (
+                <AltitudeChart targets={plan.targets} />
+              )}
+
               {/* Hourly Sky Breakdown Spectrum */}
               {plan.hourlyTimeline && (
                 <HourlyTimelineBar timeline={plan.hourlyTimeline} />
@@ -161,11 +191,11 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-slate-900 bg-slate-950/60 py-6 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© Stargazer — Powered by Open-Meteo & Astronomy Engine</p>
+          <p>© Stargazer v2 — Powered by Open-Meteo, Astronomy Engine & CelesTrak</p>
           <div className="flex items-center space-x-4">
-            <span>Astronomical Night v1.0</span>
+            <span className="text-indigo-400 font-mono">Bortle {bortle}</span>
             <span>•</span>
-            <span className="text-cyan-400/80">J2000 Ephemeris</span>
+            <span className="text-cyan-400/80 font-mono">ISS Tracking</span>
           </div>
         </div>
       </footer>

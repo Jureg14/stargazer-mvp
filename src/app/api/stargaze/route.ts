@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { generateStargazingPlan } from '@/lib/itinerary';
+import { generateStargazingPlan, BortleClass } from '@/lib/itinerary';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { lat, lon, date, locationName } = body;
+    const { lat, lon, date, locationName, bortleClass } = body;
 
     if (lat === undefined || lon === undefined || !date) {
       return NextResponse.json(
@@ -23,7 +23,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const plan = await generateStargazingPlan(latitude, longitude, date, locationName);
+    const bortle: BortleClass = bortleClass ? (Math.max(1, Math.min(9, Number(bortleClass))) as BortleClass) : 4;
+
+    const plan = await generateStargazingPlan(latitude, longitude, date, locationName, bortle);
     return NextResponse.json(plan);
   } catch (err: unknown) {
     console.error('Stargaze API handler error:', err);

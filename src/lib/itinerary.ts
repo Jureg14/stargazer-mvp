@@ -1,31 +1,36 @@
 import { Observer } from 'astronomy-engine';
+import { getBortleInfo } from './astro/bortle';
+import { calculateDSOVisibility } from './astro/dso';
+import { calculateMeteorShowers } from './astro/meteors';
 import { calculateMoonInfo } from './astro/moon';
 import { calculatePlanets } from './astro/planets';
-import { calculateTargets } from './astro/targets';
+import { getStationPasses } from './astro/satellites';
 import { calculateTwilight } from './astro/twilight';
 import { clusterObservationWindows } from './itinerary/cluster';
 import { generateNightSummary } from './itinerary/formatter';
 import { evaluateHourlyQuality, EvaluatedHour } from './scoring/scoreEngine';
+import { BortleClass } from './types/astro';
 import { StargazeItineraryResponse } from './types/itinerary';
 import { fetchWeatherForecast } from './weather/openMeteo';
 
 export * from './types/astro';
 export * from './types/weather';
 export * from './types/itinerary';
+export * from './astro/bortle';
 
 /**
- * Master itinerary orchestrator for a given observer coordinates and date.
+ * Master itinerary orchestrator for a given observer coordinates, date, and Bortle class.
  */
 export async function generateStargazingPlan(
   lat: number,
   lon: number,
   dateStr: string, // YYYY-MM-DD
-  locationName?: string
+  locationName?: string,
+  userBortle: BortleClass = 4
 ): Promise<StargazeItineraryResponse> {
   const queryDate = new Date(`${dateStr}T12:00:00Z`);
 
   // 1. Fetch Open-Meteo weather forecast for target night (today through next morning)
-  // End date is next day to cover the full astronomical night until dawn
   const nextDay = new Date(queryDate.getTime() + 24 * 3600 * 1000);
   const nextDateStr = nextDay.toISOString().split('T')[0];
 
@@ -36,12 +41,16 @@ export async function generateStargazingPlan(
   const twilight = calculateTwilight(queryDate, observer);
   const moon = calculateMoonInfo(queryDate, observer);
   const planets = calculatePlanets(queryDate, observer);
-  const dsoTargets = calculateTargets(queryDate, observer);
+  const dsoTargets = calculateDSOVisibility(queryDate, observer, userBortle);
 
-  // Combine all targets for list presentation
+  // 3. Compute satellite passes (ISS & Tiangong) and active meteor showers
+  const satellites = await getStationPasses(lat, lon, weatherData.elevationMeters, queryDate);
+  const meteorShowers = calculateMeteorShowers(queryDate, observer, moon);
+
+  // Combine targets for full catalog view
   const allTargets = [...planets, ...dsoTargets].sort((a, b) => b.altitude - a.altitude);
 
-  // 3. Evaluate each hour across the night (filter for hours between sunset/civil dusk and dawn)
+  // 4. Evaluate each hour across the night
   const evaluatedHours: EvaluatedHour[] = [];
 
   for (const record of weatherData.records) {
@@ -51,29 +60,43 @@ export async function generateStargazingPlan(
       observer,
       moon,
       planets,
-      dsoTargets
+      dsoTargets,
+      userBortle
     );
     evaluatedHours.push(evaluated);
   }
 
-  // Filter night hours for clustering (from sunset ~18:00 to sunrise ~06:00)
+  // Filter night hours for clustering (from sunset to sunrise)
   const nightHours = evaluatedHours.filter((h) => h.sunAlt <= 0);
 
-  // 4. Cluster into observation windows
+  // 5. Cluster into observation windows
   const windows = clusterObservationWindows(
     nightHours.length > 0 ? nightHours : evaluatedHours,
-    moon
+    moon,
+    satellites,
+    meteorShowers
   );
   const bestWindow = windows.length > 0 ? windows[0] : null;
 
-  // 5. Calculate overall night score & summary
+  // 6. Calculate overall night score & summary
   const darkHours = nightHours.filter((h) => h.sunAlt <= -12);
   const nightScores = nightHours.map((h) => h.score);
   const avgNightScore = nightScores.length > 0
     ? Math.round(nightScores.reduce((a, b) => a + b, 0) / nightScores.length)
     : 0;
 
-  const nightSummary = generateNightSummary(avgNightScore, bestWindow, darkHours.length);
+  const peakShower = meteorShowers.find((m) => m.isPeakNight);
+  const peakShowerName = peakShower ? `${peakShower.name} Meteor Shower (${peakShower.effectiveZhr} ZHR)` : undefined;
+
+  const nightSummary = generateNightSummary(
+    avgNightScore,
+    bestWindow,
+    darkHours.length,
+    satellites.length,
+    peakShowerName
+  );
+
+  const bortleInfo = getBortleInfo(userBortle);
 
   return {
     location: {
@@ -86,10 +109,13 @@ export async function generateStargazingPlan(
     queryDate: dateStr,
     nightQualityScore: avgNightScore,
     nightSummary,
+    bortle: bortleInfo,
     twilight,
     moon,
     bestWindow,
     windows,
+    satellites,
+    meteorShowers,
     targets: allTargets,
     hourlyTimeline: evaluatedHours.map((h) => h.breakdown),
   };
