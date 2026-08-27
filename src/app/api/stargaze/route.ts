@@ -1,39 +1,33 @@
-import { calculateStargazeItinerary, HourlyWeatherData } from '@/lib/itinerary';
+import { NextResponse } from 'next/server';
+import { generateStargazingPlan } from '@/lib/itinerary';
 
 export async function POST(req: Request) {
   try {
-    const { lat, lon, date } = await req.json();
+    const body = await req.json();
+    const { lat, lon, date, locationName } = body;
 
-    if (!lat || !lon || !date) {
-      return Response.json(
+    if (lat === undefined || lon === undefined || !date) {
+      return NextResponse.json(
         { error: 'Missing required parameters: lat, lon, date' },
         { status: 400 }
       );
     }
 
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=cloudcover,visibility,windspeed_10m&timezone=auto&start_date=${date}&end_date=${date}`;
-    const weatherRes = await fetch(weatherUrl);
+    const latitude = typeof lat === 'string' ? parseFloat(lat) : lat;
+    const longitude = typeof lon === 'string' ? parseFloat(lon) : lon;
 
-    if (!weatherRes.ok) {
-      return Response.json(
-        { error: `Weather service error: ${weatherRes.statusText}` },
-        { status: weatherRes.status }
+    if (isNaN(latitude) || isNaN(longitude)) {
+      return NextResponse.json(
+        { error: 'Invalid coordinates provided' },
+        { status: 400 }
       );
     }
 
-    const weather = await weatherRes.json();
-    const hourlyData: HourlyWeatherData = {
-      time: weather.hourly?.time ?? [],
-      cloudcover: weather.hourly?.cloudcover ?? [],
-      visibility: weather.hourly?.visibility ?? [],
-      windspeed_10m: weather.hourly?.windspeed_10m ?? [],
-    };
-
-    const blocks = calculateStargazeItinerary(lat, lon, hourlyData);
-
-    return Response.json(blocks);
+    const plan = await generateStargazingPlan(latitude, longitude, date, locationName);
+    return NextResponse.json(plan);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    return Response.json({ error: message }, { status: 500 });
+    console.error('Stargaze API handler error:', err);
+    const message = err instanceof Error ? err.message : 'Internal calculation error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -5,7 +5,6 @@ import {
   Illumination,
   Observer,
   SearchRiseSet,
-  Direction,
 } from 'astronomy-engine';
 
 export interface PlanetVisibility {
@@ -45,12 +44,12 @@ export function calculatePlanetaryPositions(
     // 3. Magnitude & illumination
     const illum = Illumination(body, date);
 
-    // 4. Rise / Set times within 24 hours of target date
+    // 4. Rise / Set times within 24 hours of target date (+1 = Rise, -1 = Set)
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
 
-    const rise = SearchRiseSet(body, observer, Direction.Rise, startOfDay, 1);
-    const set = SearchRiseSet(body, observer, Direction.Set, startOfDay, 1);
+    const rise = SearchRiseSet(body, observer, 1, startOfDay, 1);
+    const set = SearchRiseSet(body, observer, -1, startOfDay, 1);
 
     return {
       body,

@@ -63,7 +63,7 @@ export function getBodyHorizontalPosition(
 To find when the Sun sinks below key depression angles:
 
 ```typescript
-import { Body, Direction, SearchAltitude, SearchRiseSet, Observer } from 'astronomy-engine';
+import { Body, SearchAltitude, SearchRiseSet, Observer } from 'astronomy-engine';
 
 export function getTwilightTimes(date: Date, observer: Observer) {
   // Search forward from noon of target date
@@ -71,10 +71,10 @@ export function getTwilightTimes(date: Date, observer: Observer) {
   noon.setHours(12, 0, 0, 0);
 
   // Direction -1 = descending (sunset/dusk), Direction +1 = ascending (sunrise/dawn)
-  const sunset = SearchRiseSet(Body.Sun, observer, Direction.Set, noon, 1);
-  const civilDusk = SearchAltitude(Body.Sun, observer, Direction.Down, noon, 1, -6);
-  const nauticalDusk = SearchAltitude(Body.Sun, observer, Direction.Down, noon, 1, -12);
-  const astroDusk = SearchAltitude(Body.Sun, observer, Direction.Down, noon, 1, -18);
+  const sunset = SearchRiseSet(Body.Sun, observer, -1, noon, 1);
+  const civilDusk = SearchAltitude(Body.Sun, observer, -1, noon, 1, -6);
+  const nauticalDusk = SearchAltitude(Body.Sun, observer, -1, noon, 1, -12);
+  const astroDusk = SearchAltitude(Body.Sun, observer, -1, noon, 1, -18);
 
   return {
     sunset: sunset?.date,
