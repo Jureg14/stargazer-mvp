@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ObservationWindow } from '@/lib/types/itinerary';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface PushRemindersProps {
   bestWindow?: ObservationWindow | null;
@@ -9,6 +10,7 @@ interface PushRemindersProps {
 }
 
 export function PushReminders({ bestWindow, locationName }: PushRemindersProps) {
+  const { language, t } = useLanguage();
   const [permission, setPermission] = useState<NotificationPermission>(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       return Notification.permission;
@@ -19,7 +21,7 @@ export function PushReminders({ bestWindow, locationName }: PushRemindersProps) 
 
   const requestPermission = async () => {
     if (!('Notification' in window)) {
-      alert('This browser does not support desktop notifications.');
+      alert(t.reminders.notSupported);
       return;
     }
     const perm = await Notification.requestPermission();
@@ -33,9 +35,10 @@ export function PushReminders({ bestWindow, locationName }: PushRemindersProps) 
   const scheduleNotification = (windowObj: ObservationWindow) => {
     if (Notification.permission !== 'granted') return;
 
-    // Trigger confirmation notification
-    const title = `🌌 Stargazer Alert Set!`;
-    const body = `Prime observation window starting at ${windowObj.start} for ${locationName || 'your location'} (Score: ${windowObj.avgScore}/100).`;
+    const title = language === 'pt' ? '🌌 Alerta Stargazer Configurado!' : `🌌 Stargazer Alert Set!`;
+    const body = language === 'pt'
+      ? `Janela principal de observação iniciando às ${windowObj.start} para ${locationName || 'sua localização'} (Qualidade: ${windowObj.avgScore}/100).`
+      : `Prime observation window starting at ${windowObj.start} for ${locationName || 'your location'} (Score: ${windowObj.avgScore}/100).`;
 
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.ready.then((reg) => {
@@ -59,13 +62,13 @@ export function PushReminders({ bestWindow, locationName }: PushRemindersProps) 
       <div className="flex items-center gap-2.5">
         <span className="text-amber-400 text-base">🔔</span>
         <div>
-          <p className="font-semibold text-slate-100">Observation Alerts & Push Reminders</p>
+          <p className="font-semibold text-slate-100">{t.reminders.title}</p>
           <p className="text-xs text-slate-400">
             {isScheduled
-              ? `Alert scheduled for prime window (${bestWindow?.start || 'Tonight'})`
+              ? (language === 'pt' ? `Alerta agendado para a janela principal (${bestWindow?.start || 'Hoje à noite'})` : `Alert scheduled for prime window (${bestWindow?.start || 'Tonight'})`)
               : bestWindow
-              ? `Prime window found (${bestWindow.avgScore}/100 quality). Set notification alert?`
-              : 'Receive notifications when sky quality reaches prime scores (>75).'}
+              ? (language === 'pt' ? `Janela principal encontrada (Qualidade ${bestWindow.avgScore}/100). Ativar alerta?` : `Prime window found (${bestWindow.avgScore}/100 quality). Set notification alert?`)
+              : (language === 'pt' ? 'Receba alertas quando a qualidade do céu atingir notas excelentes (>75).' : 'Receive notifications when sky quality reaches prime scores (>75).')}
           </p>
         </div>
       </div>
@@ -79,8 +82,9 @@ export function PushReminders({ bestWindow, locationName }: PushRemindersProps) 
             : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md'
         }`}
       >
-        {isScheduled ? '✓ Reminder Active' : 'Enable Alerts'}
+        {isScheduled ? (language === 'pt' ? '✓ Lembrete Ativo' : t.reminders.enabledBtn) : t.reminders.enableBtn}
       </button>
     </div>
   );
 }
+

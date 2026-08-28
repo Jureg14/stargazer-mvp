@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { lat, lon, date, locationName, bortleClass } = body;
+    const { lat, lon, date, locationName, bortleClass, lang } = body;
 
     if (lat === undefined || lon === undefined || !date) {
       return NextResponse.json(
@@ -26,8 +26,9 @@ export async function POST(req: Request) {
     }
 
     const bortle: BortleClass = bortleClass ? (Math.max(1, Math.min(9, Number(bortleClass))) as BortleClass) : 4;
+    const language = lang === 'pt' ? 'pt' : 'en';
 
-    const plan = await generateStargazingPlan(latitude, longitude, date, locationName, bortle);
+    const plan = await generateStargazingPlan(latitude, longitude, date, locationName, bortle, language);
     return NextResponse.json(plan, {
       headers: {
         'Cache-Control': 'public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400',

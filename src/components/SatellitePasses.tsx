@@ -2,22 +2,25 @@
 
 import { format } from 'date-fns';
 import { SatellitePass } from '@/lib/types/astro';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface SatellitePassesProps {
   passes: SatellitePass[];
 }
 
 export function SatellitePasses({ passes }: SatellitePassesProps) {
+  const { language, t } = useLanguage();
+
   if (passes.length === 0) return null;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <span>🛰️</span> Visible Satellite Passes Tonight
+          <span>🛰️</span> {t.satellites.title}
         </h2>
         <span className="text-xs font-mono text-cyan-300">
-          {passes.length} {passes.length === 1 ? 'pass' : 'passes'} (ISS / Tiangong)
+          {passes.length} {language === 'pt' ? 'passagem(ns)' : (passes.length === 1 ? 'pass' : 'passes')} (ISS / Tiangong)
         </span>
       </div>
 
@@ -44,7 +47,7 @@ export function SatellitePasses({ passes }: SatellitePassesProps) {
                         {pass.satelliteName}
                       </h3>
                       <p className="text-[11px] font-mono text-cyan-300">
-                        Peak at {peakTime} (Duration: ~{durationMins} min)
+                        {language === 'pt' ? 'Pico às' : 'Peak at'} {peakTime} ({language === 'pt' ? 'Duração:' : 'Duration:'} ~{durationMins} min)
                       </p>
                     </div>
                   </div>
@@ -56,11 +59,11 @@ export function SatellitePasses({ passes }: SatellitePassesProps) {
 
                 <div className="bg-slate-950/60 rounded-xl p-2.5 border border-slate-800/80 mb-3 text-xs flex items-center justify-between">
                   <div className="text-slate-300">
-                    <span className="text-slate-500 block text-[10px] uppercase">Trajectory</span>
+                    <span className="text-slate-500 block text-[10px] uppercase">{t.satellites.trajectory}</span>
                     <span className="font-semibold text-white font-mono">{pass.trajectory}</span>
                   </div>
                   <div className="text-right text-slate-300">
-                    <span className="text-slate-500 block text-[10px] uppercase">Time Span</span>
+                    <span className="text-slate-500 block text-[10px] uppercase">{language === 'pt' ? 'Horário' : 'Time Span'}</span>
                     <span className="font-mono text-cyan-200">{startTime} – {endTime}</span>
                   </div>
                 </div>
@@ -68,15 +71,15 @@ export function SatellitePasses({ passes }: SatellitePassesProps) {
 
               <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
                 <div className="bg-slate-900/80 rounded-lg p-1.5 text-center">
-                  <span className="text-slate-500 block text-[10px] uppercase">Max Alt</span>
+                  <span className="text-slate-500 block text-[10px] uppercase">{t.satellites.maxAlt}</span>
                   <span className="font-bold text-cyan-300">{pass.maxAltitudeDeg}°</span>
                 </div>
                 <div className="bg-slate-900/80 rounded-lg p-1.5 text-center">
-                  <span className="text-slate-500 block text-[10px] uppercase">Rises</span>
+                  <span className="text-slate-500 block text-[10px] uppercase">{language === 'pt' ? 'Surgimento' : 'Rises'}</span>
                   <span className="font-bold text-slate-200">{pass.startDirection} ({pass.startAzimuthDeg}°)</span>
                 </div>
                 <div className="bg-slate-900/80 rounded-lg p-1.5 text-center">
-                  <span className="text-slate-500 block text-[10px] uppercase">Sets</span>
+                  <span className="text-slate-500 block text-[10px] uppercase">{language === 'pt' ? 'Desaparece' : 'Sets'}</span>
                   <span className="font-bold text-slate-200">{pass.endDirection} ({pass.endAzimuthDeg}°)</span>
                 </div>
               </div>
@@ -87,3 +90,4 @@ export function SatellitePasses({ passes }: SatellitePassesProps) {
     </div>
   );
 }
+

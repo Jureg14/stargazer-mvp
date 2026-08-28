@@ -2,6 +2,7 @@ import { EvaluatedHour } from '../scoring/scoreEngine';
 import { CelestialTarget, MeteorShower, MoonInfo, SatellitePass } from '../types/astro';
 import { ObservationWindow, WindowScoreDetails, WindowScoreFactor } from '../types/itinerary';
 import { generateWindowNarrative } from './formatter';
+import { Language } from '../i18n/translations';
 
 /**
  * Clusters contiguous eligible observation hours into continuous viewing blocks.
@@ -10,7 +11,8 @@ export function clusterObservationWindows(
   hours: EvaluatedHour[],
   moonInfo: MoonInfo,
   satellites: SatellitePass[] = [],
-  meteors: MeteorShower[] = []
+  meteors: MeteorShower[] = [],
+  lang: Language = 'en'
 ): ObservationWindow[] {
   const windows: ObservationWindow[] = [];
   let currentGroup: EvaluatedHour[] = [];
@@ -23,26 +25,28 @@ export function clusterObservationWindows(
       currentGroup.push(h);
     } else {
       if (currentGroup.length > 0) {
-        windows.push(buildWindowFromGroup(currentGroup, moonInfo, windows.length + 1, satellites, meteors));
+        windows.push(buildWindowFromGroup(currentGroup, moonInfo, windows.length + 1, satellites, meteors, lang));
         currentGroup = [];
       }
     }
   }
 
   if (currentGroup.length > 0) {
-    windows.push(buildWindowFromGroup(currentGroup, moonInfo, windows.length + 1, satellites, meteors));
+    windows.push(buildWindowFromGroup(currentGroup, moonInfo, windows.length + 1, satellites, meteors, lang));
   }
 
   // Sort windows by average score descending
   return windows.sort((a, b) => b.avgScore - a.avgScore);
 }
 
+
 function buildWindowFromGroup(
   group: EvaluatedHour[],
   moonInfo: MoonInfo,
   index: number,
   satellites: SatellitePass[],
-  meteors: MeteorShower[]
+  meteors: MeteorShower[],
+  lang: Language = 'en'
 ): ObservationWindow {
   const startDate = group[0].time;
   const endDate = group[group.length - 1].time;
@@ -70,11 +74,15 @@ function buildWindowFromGroup(
   const avgMoonAlt = group.reduce((a, b) => a + b.moonAlt, 0) / group.length;
   let moonStatus = 'low moonlight';
   if (avgMoonAlt <= 0) {
-    moonStatus = 'Moon below horizon (dark sky)';
+    moonStatus = lang === 'pt' ? 'Lua abaixo do horizonte (céu escuro)' : 'Moon below horizon (dark sky)';
   } else if (moonInfo.illuminationFraction < 0.25) {
-    moonStatus = `Crescent Moon (${Math.round(moonInfo.illuminationFraction * 100)}% lit)`;
+    moonStatus = lang === 'pt'
+      ? `Lua Crescente (${Math.round(moonInfo.illuminationFraction * 100)}% iluminada)`
+      : `Crescent Moon (${Math.round(moonInfo.illuminationFraction * 100)}% lit)`;
   } else {
-    moonStatus = `Moonlit (${Math.round(moonInfo.illuminationFraction * 100)}% lit, alt ${Math.round(avgMoonAlt)}°)`;
+    moonStatus = lang === 'pt'
+      ? `Iluminação Lunar (${Math.round(moonInfo.illuminationFraction * 100)}% iluminada, alt ${Math.round(avgMoonAlt)}°)`
+      : `Moonlit (${Math.round(moonInfo.illuminationFraction * 100)}% lit, alt ${Math.round(avgMoonAlt)}°)`;
   }
 
   // Aggregate highlights & targets
@@ -91,7 +99,7 @@ function buildWindowFromGroup(
 
   targetMap.forEach((t) => {
     if (t.isOptimal) {
-      highlightsSet.add(`${t.name} at ${Math.round(t.altitude)}° altitude`);
+      highlightsSet.add(`${t.name} ${lang === 'pt' ? 'a' : 'at'} ${Math.round(t.altitude)}° ${lang === 'pt' ? 'de altitude' : 'altitude'}`);
     }
   });
 
@@ -102,12 +110,12 @@ function buildWindowFromGroup(
   });
 
   matchingSats.forEach((s) => {
-    highlightsSet.add(`${s.satelliteName.split(' ')[0]} pass (max alt ${s.maxAltitudeDeg}°)`);
+    highlightsSet.add(`${s.satelliteName.split(' ')[0]} ${lang === 'pt' ? 'passagem (alt máx' : 'pass (max alt'} ${s.maxAltitudeDeg}°)`);
   });
 
   const highlights = Array.from(highlightsSet);
   if (highlights.length === 0) {
-    highlights.push('Constellations and bright stars');
+    highlights.push(lang === 'pt' ? 'Constelações e estrelas brilhantes' : 'Constellations and bright stars');
   }
 
   const targets = Array.from(targetMap.values());
@@ -119,106 +127,106 @@ function buildWindowFromGroup(
 
   if (avgSunAlt <= -18) {
     factors.push({
-      category: 'Solar Darkness',
+      category: lang === 'pt' ? 'Escuridão Solar' : 'Solar Darkness',
       score: 20,
-      description: `True Astronomical Darkness (Sun altitude ${avgSunAlt}°)`,
+      description: lang === 'pt' ? `Escuridão Astronômica Verdadeira (Altitude do Sol ${avgSunAlt}°)` : `True Astronomical Darkness (Sun altitude ${avgSunAlt}°)`,
       status: 'positive',
     });
   } else if (avgSunAlt <= -12) {
     factors.push({
-      category: 'Solar Darkness',
+      category: lang === 'pt' ? 'Escuridão Solar' : 'Solar Darkness',
       score: 10,
-      description: `Astronomical Twilight (Sun altitude ${avgSunAlt}°)`,
+      description: lang === 'pt' ? `Crepúsculo Astronômico (Altitude do Sol ${avgSunAlt}°)` : `Astronomical Twilight (Sun altitude ${avgSunAlt}°)`,
       status: 'positive',
     });
   } else {
     factors.push({
-      category: 'Solar Darkness',
+      category: lang === 'pt' ? 'Escuridão Solar' : 'Solar Darkness',
       score: -20,
-      description: `Nautical Twilight Glow (Sun altitude ${avgSunAlt}°)`,
+      description: lang === 'pt' ? `Brilho do Crepúsculo Náutico (Altitude do Sol ${avgSunAlt}°)` : `Nautical Twilight Glow (Sun altitude ${avgSunAlt}°)`,
       status: 'negative',
     });
   }
 
   if (avgCloud <= 10) {
     factors.push({
-      category: 'Cloud Cover',
+      category: lang === 'pt' ? 'Cobertura de Nuvens' : 'Cloud Cover',
       score: 25,
-      description: `Pristine Clear Skies (${avgCloud}% cloud cover)`,
+      description: lang === 'pt' ? `Céu Limpo Pristino (${avgCloud}% de nuvens)` : `Pristine Clear Skies (${avgCloud}% cloud cover)`,
       status: 'positive',
     });
   } else if (avgCloud <= 25) {
     factors.push({
-      category: 'Cloud Cover',
+      category: lang === 'pt' ? 'Cobertura de Nuvens' : 'Cloud Cover',
       score: 15,
-      description: `Mostly Clear (${avgCloud}% cloud cover)`,
+      description: lang === 'pt' ? `Predominantemente Limpo (${avgCloud}% de nuvens)` : `Mostly Clear (${avgCloud}% cloud cover)`,
       status: 'positive',
     });
   } else if (avgCloud <= 40) {
     factors.push({
-      category: 'Cloud Cover',
+      category: lang === 'pt' ? 'Cobertura de Nuvens' : 'Cloud Cover',
       score: 0,
-      description: `Scattered Clouds (${avgCloud}% cloud cover)`,
+      description: lang === 'pt' ? `Nuvens Esparsas (${avgCloud}% de nuvens)` : `Scattered Clouds (${avgCloud}% cloud cover)`,
       status: 'neutral',
     });
   } else {
     factors.push({
-      category: 'Cloud Cover',
+      category: lang === 'pt' ? 'Cobertura de Nuvens' : 'Cloud Cover',
       score: -30,
-      description: `Significant Cloud Cover (${avgCloud}% cloud cover)`,
+      description: lang === 'pt' ? `Muitas Nuvens (${avgCloud}% de nuvens)` : `Significant Cloud Cover (${avgCloud}% cloud cover)`,
       status: 'negative',
     });
   }
 
   if (avgMoonAlt <= 0) {
     factors.push({
-      category: 'Lunar Illumination',
+      category: lang === 'pt' ? 'Iluminação Lunar' : 'Lunar Illumination',
       score: 15,
-      description: 'Moon below horizon (Dark natural sky)',
+      description: lang === 'pt' ? 'Lua abaixo do horizonte (Céu natural escuro)' : 'Moon below horizon (Dark natural sky)',
       status: 'positive',
     });
   } else if (moonInfo.illuminationFraction <= 0.15) {
     factors.push({
-      category: 'Lunar Illumination',
+      category: lang === 'pt' ? 'Iluminação Lunar' : 'Lunar Illumination',
       score: 10,
-      description: `Minimal Moon Glare (${Math.round(moonInfo.illuminationFraction * 100)}% Crescent)`,
+      description: lang === 'pt' ? `Brilho Lunar Mínimo (${Math.round(moonInfo.illuminationFraction * 100)}% Crescente)` : `Minimal Moon Glare (${Math.round(moonInfo.illuminationFraction * 100)}% Crescent)`,
       status: 'positive',
     });
   } else if (moonInfo.illuminationFraction <= 0.40) {
     factors.push({
-      category: 'Lunar Illumination',
+      category: lang === 'pt' ? 'Iluminação Lunar' : 'Lunar Illumination',
       score: 0,
-      description: `Moderate Moonlight (${Math.round(moonInfo.illuminationFraction * 100)}% illuminated)`,
+      description: lang === 'pt' ? `Luz Lunar Moderada (${Math.round(moonInfo.illuminationFraction * 100)}% iluminada)` : `Moderate Moonlight (${Math.round(moonInfo.illuminationFraction * 100)}% illuminated)`,
       status: 'neutral',
     });
   } else {
     factors.push({
-      category: 'Lunar Illumination',
+      category: lang === 'pt' ? 'Iluminação Lunar' : 'Lunar Illumination',
       score: -25,
-      description: `Bright Lunar Glare (${Math.round(moonInfo.illuminationFraction * 100)}% illuminated)`,
+      description: lang === 'pt' ? `Brilho Lunar Forte (${Math.round(moonInfo.illuminationFraction * 100)}% iluminada)` : `Bright Lunar Glare (${Math.round(moonInfo.illuminationFraction * 100)}% illuminated)`,
       status: 'negative',
     });
   }
 
   if (seeing === 'Excellent') {
     factors.push({
-      category: 'Atmospheric Seeing',
+      category: lang === 'pt' ? 'Seeing Atmosférico' : 'Atmospheric Seeing',
       score: 10,
-      description: 'Pristine sub-arcsecond seeing stability',
+      description: lang === 'pt' ? 'Estabilidade sub-arcosegundo excelente' : 'Pristine sub-arcsecond seeing stability',
       status: 'positive',
     });
   } else if (seeing === 'Good') {
     factors.push({
-      category: 'Atmospheric Seeing',
+      category: lang === 'pt' ? 'Seeing Atmosférico' : 'Atmospheric Seeing',
       score: 5,
-      description: 'Good seeing conditions & steady air',
+      description: lang === 'pt' ? 'Boas condições de seeing e ar estável' : 'Good seeing conditions & steady air',
       status: 'positive',
     });
   } else {
     factors.push({
-      category: 'Atmospheric Seeing',
+      category: lang === 'pt' ? 'Seeing Atmosférico' : 'Atmospheric Seeing',
       score: -15,
-      description: 'Atmospheric turbulence & unsteady air',
+      description: lang === 'pt' ? 'Turbulência atmosférica e ar instável' : 'Atmospheric turbulence & unsteady air',
       status: 'negative',
     });
   }
@@ -227,9 +235,9 @@ function buildWindowFromGroup(
   const targetBonus = Math.min(15, optimalTargetsCount * 5);
   if (targetBonus > 0) {
     factors.push({
-      category: 'Target Availability',
+      category: lang === 'pt' ? 'Disponibilidade de Alvos' : 'Target Availability',
       score: targetBonus,
-      description: `${optimalTargetsCount} prime target${optimalTargetsCount > 1 ? 's' : ''} visible above 25° horizon altitude`,
+      description: lang === 'pt' ? `${optimalTargetsCount} alvo(s) principal(is) visível(is) acima de 25° de altitude` : `${optimalTargetsCount} prime target${optimalTargetsCount > 1 ? 's' : ''} visible above 25° horizon altitude`,
       status: 'positive',
     });
   }
@@ -250,7 +258,7 @@ function buildWindowFromGroup(
     maxScore,
     avgCloud,
     seeing,
-    transparency: 'High transparency',
+    transparency: lang === 'pt' ? 'Transparência alta' : 'High transparency',
     moonStatus,
     highlights,
     targets,
@@ -259,7 +267,7 @@ function buildWindowFromGroup(
     scoreDetails,
   };
 
-  const narrative = generateWindowNarrative(partialWindow);
+  const narrative = generateWindowNarrative(partialWindow, lang);
 
   return {
     id: `window-${index}`,
@@ -271,7 +279,7 @@ function buildWindowFromGroup(
     maxScore,
     avgCloud,
     seeing,
-    transparency: 'High transparency',
+    transparency: lang === 'pt' ? 'Transparência alta' : 'High transparency',
     moonStatus,
     highlights,
     narrative,
@@ -281,3 +289,4 @@ function buildWindowFromGroup(
     scoreDetails,
   };
 }
+

@@ -3,16 +3,17 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { HourlyScoreBreakdown } from '@/lib/types/itinerary';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface HourlyTimelineBarProps {
   timeline: HourlyScoreBreakdown[];
 }
 
 export function HourlyTimelineBar({ timeline }: HourlyTimelineBarProps) {
+  const { language, t } = useLanguage();
   const [selectedHour, setSelectedHour] = useState<HourlyScoreBreakdown | null>(null);
 
   // Filter timeline to show the target night sequence: from evening dusk (Day 1) to morning dawn (Day 2)
-  // Find the first index after hour 12 where Sun altitude drops below 2 degrees
   let startIndex = timeline.findIndex((h) => {
     const d = new Date(h.time);
     return d.getUTCHours() >= 12 && h.sunAlt <= 2;
@@ -38,10 +39,10 @@ export function HourlyTimelineBar({ timeline }: HourlyTimelineBarProps) {
     <div className="glass-panel rounded-2xl p-5 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <span>📊</span> Night Sky Hourly Spectrum (Dusk to Dawn)
+          <span>📊</span> {t.hourlyBar.title}
         </h2>
         <span className="text-xs text-slate-400">
-          Click any hour bar for detailed sky quality breakdown
+          {t.hourlyBar.subtitle}
         </span>
       </div>
 
@@ -94,7 +95,7 @@ export function HourlyTimelineBar({ timeline }: HourlyTimelineBarProps) {
                         ? '#fbbf24'
                         : '#f87171',
                   }}
-                  title={`${h.cloudCover}% cloud cover`}
+                  title={`${h.cloudCover}% ${language === 'pt' ? 'de nuvens' : 'cloud cover'}`}
                 />
 
                 {/* Time & Date Stacked Label */}
@@ -125,24 +126,24 @@ export function HourlyTimelineBar({ timeline }: HourlyTimelineBarProps) {
                 {format(new Date(selectedHour.time), 'dd/MM HH:mm')}
               </span>
               <span className="text-xs text-slate-300 font-medium">
-                Score: <strong className="text-cyan-300 font-mono">{selectedHour.totalScore}/100</strong>
+                {language === 'pt' ? 'Pontuação:' : 'Score:'} <strong className="text-cyan-300 font-mono">{selectedHour.totalScore}/100</strong>
               </span>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-400">
-              <span>Cloud: {selectedHour.cloudCover}%</span>
+              <span>{language === 'pt' ? 'Nuvens:' : 'Cloud:'} {selectedHour.cloudCover}%</span>
               <span>•</span>
               <span>Seeing: {selectedHour.seeingQuality}</span>
               <span>•</span>
-              <span>Sun: {selectedHour.sunAlt}°</span>
+              <span>Sol: {selectedHour.sunAlt}°</span>
             </div>
           </div>
 
           <div className="text-xs text-slate-300">
-            <span className="text-slate-400 font-medium mr-1.5">Visible at this hour:</span>
+            <span className="text-slate-400 font-medium mr-1.5">{language === 'pt' ? 'Visíveis neste horário:' : 'Visible at this hour:'}</span>
             {selectedHour.targetNames.length > 0 ? (
               <span className="text-slate-200">{selectedHour.targetNames.join(', ')}</span>
             ) : (
-              <span className="text-slate-500">None optimal above 20° altitude</span>
+              <span className="text-slate-500">{language === 'pt' ? 'Nenhum ideal acima de 20° de altitude' : 'None optimal above 20° altitude'}</span>
             )}
           </div>
         </div>
@@ -150,3 +151,4 @@ export function HourlyTimelineBar({ timeline }: HourlyTimelineBarProps) {
     </div>
   );
 }
+

@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { CelestialBodyType, SearchableCelestialTarget } from '@/lib/types/astro';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface CelestialSearchProps {
   targets?: SearchableCelestialTarget[];
@@ -12,6 +13,7 @@ type DayFilter = 'all' | 'night_twilight' | 'daytime';
 type SortOption = 'chronological' | 'altitude' | 'magnitude' | 'name';
 
 export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
+  const { language, t } = useLanguage();
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<CelestialBodyType | 'all'>('all');
@@ -22,19 +24,19 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
 
   // Type filter pills configuration
   const typeOptions: { id: CelestialBodyType | 'all'; label: string; icon: string }[] = [
-    { id: 'all', label: 'All Bodies', icon: '🌌' },
-    { id: 'planet', label: 'Planets', icon: '🪐' },
-    { id: 'star', label: 'Stars', icon: '⭐' },
-    { id: 'constellation', label: 'Constellations', icon: '✨' },
-    { id: 'dso', label: 'Deep Sky (DSO)', icon: '🌀' },
-    { id: 'moon', label: 'Moon', icon: '🌕' },
+    { id: 'all', label: t.celestialSearch.all, icon: '🌌' },
+    { id: 'planet', label: t.celestialSearch.planets, icon: '🪐' },
+    { id: 'star', label: language === 'pt' ? 'Estrelas' : 'Stars', icon: '⭐' },
+    { id: 'constellation', label: language === 'pt' ? 'Constelações' : 'Constellations', icon: '✨' },
+    { id: 'dso', label: t.celestialSearch.dso, icon: '🌀' },
+    { id: 'moon', label: t.celestialSearch.moon, icon: '🌕' },
   ];
 
   // Filtering & sorting logic
   const filteredTargets = useMemo(() => {
     return targets
       .filter((t) => {
-        // 1. Text search query match (name, constellation, description)
+        // 1. Text search query match
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
           const matchName = t.name.toLowerCase().includes(q);
@@ -83,7 +85,7 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
 
   return (
     <section className="space-y-4">
-      {/* Section Title & Header (Clickable Collapsible Bar) */}
+      {/* Section Title & Header */}
       <div
         onClick={() => setIsCollapsed((prev) => !prev)}
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl glass-panel glass-panel-hover border border-slate-800 cursor-pointer select-none transition-all"
@@ -103,19 +105,19 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
           </span>
           <div>
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-              Celestial Body Search & Culmination Explorer
+              {language === 'pt' ? 'Busca e Culminação de Astros Celestiais' : 'Celestial Body Search & Culmination Explorer'}
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               {isCollapsed
-                ? 'Click to expand search, filters, and peak elevation visibility windows'
-                : 'Search celestial bodies and track when they reach their highest point in the sky across day & night.'}
+                ? (language === 'pt' ? 'Clique para expandir filtros e horários de altitude máxima' : 'Click to expand search, filters, and peak elevation visibility windows')
+                : (language === 'pt' ? 'Busque corpos celestes e acompanhe quando atingem o ponto mais alto no céu.' : 'Search celestial bodies and track when they reach their highest point in the sky across day & night.')}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-center">
           <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-cyan-300">
-            {filteredTargets.length} {filteredTargets.length === 1 ? 'body' : 'bodies'}
+            {filteredTargets.length} {language === 'pt' ? 'astro(s)' : (filteredTargets.length === 1 ? 'body' : 'bodies')}
           </span>
           <div className="w-7 h-7 rounded-lg bg-slate-800/80 border border-slate-700 flex items-center justify-center text-xs text-slate-300 hover:text-white transition-transform">
             <svg
@@ -147,7 +149,7 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search celestial body by name (e.g. Jupiter, Sirius, Orion, Andromeda, Moon)..."
+            placeholder={t.celestialSearch.searchPlaceholder}
             className="w-full pl-10 pr-10 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-sans"
           />
           {searchQuery && (
@@ -164,7 +166,7 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-1 border-t border-slate-800/60">
           {/* Type Filter Pills */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-slate-400 font-medium mr-1">Type:</span>
+            <span className="text-xs text-slate-400 font-medium mr-1">{language === 'pt' ? 'Tipo:' : 'Type:'}</span>
             {typeOptions.map((t) => {
               const isSelected = selectedType === t.id;
               return (
@@ -196,7 +198,7 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                All Skies
+                {language === 'pt' ? 'Todo o Céu' : 'All Skies'}
               </button>
               <button
                 onClick={() => setDayFilter('night_twilight')}
@@ -206,7 +208,7 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <span>🌙</span> Night & Twilight
+                <span>🌙</span> {language === 'pt' ? 'Noite e Crepúsculo' : 'Night & Twilight'}
               </button>
               <button
                 onClick={() => setDayFilter('daytime')}
@@ -216,22 +218,22 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <span>☀️</span> Daytime
+                <span>☀️</span> {language === 'pt' ? 'Diurno' : 'Daytime'}
               </button>
             </div>
 
             {/* Sort Selector */}
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-400 font-medium hidden sm:inline">Sort:</span>
+              <span className="text-xs text-slate-400 font-medium hidden sm:inline">{language === 'pt' ? 'Ordem:' : 'Sort:'}</span>
               <select
                 value={sortOption}
                 onChange={(e) => setSortOption(e.target.value as SortOption)}
                 className="bg-slate-950/90 border border-slate-800 rounded-xl text-xs text-slate-200 px-3 py-1.5 focus:outline-none focus:border-cyan-500 font-sans cursor-pointer"
               >
-                <option value="chronological">⏰ Chronological (Peak Hour)</option>
-                <option value="altitude">📐 Highest Peak Altitude</option>
-                <option value="magnitude">✨ Brightest (Magnitude)</option>
-                <option value="name">🔤 Name (A-Z)</option>
+                <option value="chronological">{language === 'pt' ? '⏰ Cronológica (Horário Pico)' : '⏰ Chronological (Peak Hour)'}</option>
+                <option value="altitude">{language === 'pt' ? '📐 Maior Altitude de Pico' : '📐 Highest Peak Altitude'}</option>
+                <option value="magnitude">{language === 'pt' ? '✨ Brilho (Magnitude)' : '✨ Brightest (Magnitude)'}</option>
+                <option value="name">{language === 'pt' ? '🔤 Nome (A-Z)' : '🔤 Name (A-Z)'}</option>
               </select>
             </div>
           </div>
@@ -240,9 +242,11 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
         {/* Magnitude Slider Filter */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800/40 text-xs">
           <div className="flex items-center gap-2 text-slate-400">
-            <span>Magnitude Limit:</span>
+            <span>{language === 'pt' ? 'Limite de Magnitude:' : 'Magnitude Limit:'}</span>
             <span className="font-mono text-cyan-300 font-semibold">
-              {maxMag === 10 ? 'All Magnitudes (≤ +10)' : `Brighter than +${maxMag.toFixed(1)} mag`}
+              {maxMag === 10
+                ? (language === 'pt' ? 'Todas as Magnitudes (≤ +10)' : 'All Magnitudes (≤ +10)')
+                : (language === 'pt' ? `Mais brilhantes que +${maxMag.toFixed(1)} mag` : `Brighter than +${maxMag.toFixed(1)} mag`)}
             </span>
           </div>
 
@@ -266,10 +270,7 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
       {filteredTargets.length === 0 ? (
         <div className="glass-panel rounded-2xl p-8 text-center space-y-2">
           <div className="text-3xl">🔭</div>
-          <h3 className="font-bold text-white text-sm">No Celestial Bodies Match Your Criteria</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            Try adjusting your search query, increasing the magnitude threshold, or selecting &quot;All Skies&quot;.
-          </p>
+          <h3 className="font-bold text-white text-sm">{t.celestialSearch.noResults}</h3>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -333,63 +334,54 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
                   {/* Culmination Window Highlight Box */}
                   <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800/80 space-y-2 mb-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-400 font-medium">Highest Point in Sky:</span>
+                      <span className="text-[11px] text-slate-400 font-medium">{language === 'pt' ? 'Ponto Mais Alto no Céu:' : 'Highest Point in Sky:'}</span>
                       <span className="text-xs font-bold text-cyan-300 font-mono">
-                        {win.dayLabel} at {peakHourStr}
+                        {win.dayLabel} {language === 'pt' ? 'às' : 'at'} {peakHourStr}
                       </span>
                     </div>
 
                     {/* Peak Metrics Row */}
                     <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-900 text-xs">
                       <div>
-                        <span className="text-[10px] text-slate-500 uppercase block font-mono">Peak Altitude</span>
+                        <span className="text-[10px] text-slate-500 uppercase block font-mono">{language === 'pt' ? 'Altitude Máx' : 'Peak Altitude'}</span>
                         <span className={`font-bold font-mono ${isPrimeAlt ? 'text-cyan-300' : 'text-slate-200'}`}>
                           {win.peakAltitudeDeg}° ({win.azimuthDirection})
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-500 uppercase block font-mono">Sky Status</span>
+                        <span className="text-[10px] text-slate-500 uppercase block font-mono">{language === 'pt' ? 'Status do Céu' : 'Sky Status'}</span>
                         <span className="text-[11px] font-medium flex items-center gap-1">
                           {isNight ? (
-                            <span className="text-indigo-300">🌙 Dark Sky</span>
+                            <span className="text-indigo-300">🌙 {language === 'pt' ? 'Céu Escuro' : 'Dark Sky'}</span>
                           ) : isTwilight ? (
-                            <span className="text-amber-300">🌅 Twilight</span>
+                            <span className="text-amber-300">🌅 {language === 'pt' ? 'Crepúsculo' : 'Twilight'}</span>
                           ) : win.isDaytimeVisible ? (
-                            <span className="text-emerald-300 font-semibold">☀️ Day Visible</span>
+                            <span className="text-emerald-300 font-semibold">☀️ {language === 'pt' ? 'Visível de Dia' : 'Day Visible'}</span>
                           ) : (
-                            <span className="text-amber-400/90 text-[10px]">☀️ Daytime Peak</span>
+                            <span className="text-amber-400/90 text-[10px]">☀️ {language === 'pt' ? 'Pico Diurno' : 'Daytime Peak'}</span>
                           )}
                         </span>
                       </div>
                     </div>
-
-                    {/* Day Warning Banner if washed out by sun */}
-                    {isDay && !win.isDaytimeVisible && (
-                      <div className="bg-amber-950/40 border border-amber-800/40 rounded-lg px-2.5 py-1 text-[11px] text-amber-200/90 flex items-center gap-1.5">
-                        <span>☀️</span>
-                        <span>Peaks during daylight (hidden by solar glare)</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Rise / Peak / Set Timeline Bar */}
                   <div className="bg-slate-900/60 rounded-xl p-2.5 border border-slate-800/60 mb-3">
                     <div className="text-[10px] uppercase font-mono text-slate-400 mb-1.5 flex items-center justify-between">
-                      <span>Visibility Window</span>
-                      <span className="text-slate-500">24h Cycle</span>
+                      <span>{language === 'pt' ? 'Janela de Visibilidade' : 'Visibility Window'}</span>
                     </div>
 
                     <div className="grid grid-cols-3 gap-1 text-center font-mono text-xs">
                       <div className="bg-slate-950/70 rounded-lg py-1 px-1.5">
-                        <span className="text-[9px] text-slate-500 block uppercase">Rise</span>
+                        <span className="text-[9px] text-slate-500 block uppercase">{language === 'pt' ? 'Nascer' : 'Rise'}</span>
                         <span className="text-slate-300">{riseStr || '—'}</span>
                       </div>
                       <div className="bg-cyan-950/50 border border-cyan-800/50 rounded-lg py-1 px-1.5">
-                        <span className="text-[9px] text-cyan-400 block uppercase font-bold">Highest</span>
+                        <span className="text-[9px] text-cyan-400 block uppercase font-bold">{language === 'pt' ? 'Pico' : 'Highest'}</span>
                         <span className="text-cyan-200 font-bold">{peakHourStr}</span>
                       </div>
                       <div className="bg-slate-950/70 rounded-lg py-1 px-1.5">
-                        <span className="text-[9px] text-slate-500 block uppercase">Set</span>
+                        <span className="text-[9px] text-slate-500 block uppercase">{language === 'pt' ? 'Pôr' : 'Set'}</span>
                         <span className="text-slate-300">{setStr || '—'}</span>
                       </div>
                     </div>
@@ -401,24 +393,24 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
                       <p className="leading-relaxed text-slate-300">{target.description}</p>
                       {target.notes && (
                         <p className="text-[11px] text-cyan-300/80 bg-cyan-950/30 p-2 rounded-lg border border-cyan-800/30">
-                          💡 <span className="font-semibold text-cyan-200">Observing Tip:</span> {target.notes}
+                          💡 <span className="font-semibold text-cyan-200">{language === 'pt' ? 'Dica de Observação:' : 'Observing Tip:'}</span> {target.notes}
                         </p>
                       )}
                     </div>
                   )}
                 </div>
 
-                {/* Card Footer: Expand / Details Button */}
+                {/* Card Footer */}
                 <div className="pt-2 border-t border-slate-800/50 flex items-center justify-between text-xs">
                   <span className="text-[11px] font-mono text-slate-400">
-                    {target.isAboveHorizon ? '🟢 Above Horizon Now' : '⚪ Below Horizon Now'}
+                    {target.isAboveHorizon ? (language === 'pt' ? '🟢 Acima do Horizonte' : '🟢 Above Horizon Now') : (language === 'pt' ? '⚪ Abaixo do Horizonte' : '⚪ Below Horizon Now')}
                   </span>
 
                   <button
                     onClick={() => setExpandedId(isExpanded ? null : target.id)}
                     className="text-cyan-400 hover:text-cyan-300 font-semibold cursor-pointer flex items-center gap-1 text-[11px]"
                   >
-                    <span>{isExpanded ? 'Less Info' : 'Details'}</span>
+                    <span>{isExpanded ? (language === 'pt' ? 'Menos Info' : 'Less Info') : (language === 'pt' ? 'Detalhes' : 'Details')}</span>
                     <span>{isExpanded ? '▲' : '▼'}</span>
                   </button>
                 </div>
@@ -432,3 +424,4 @@ export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
     </section>
   );
 }
+

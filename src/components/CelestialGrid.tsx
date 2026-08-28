@@ -1,6 +1,7 @@
 'use client';
 
 import { CelestialTarget } from '@/lib/types/astro';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface CelestialGridProps {
   targets: CelestialTarget[];
@@ -13,28 +14,30 @@ function getAzimuthDirection(deg: number): string {
 }
 
 export function CelestialGrid({ targets }: CelestialGridProps) {
+  const { language, t } = useLanguage();
+
   if (targets.length === 0) return null;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <span>🔭</span> Celestial Targets Tonight
+          <span>🔭</span> {t.celestialGrid.title}
         </h2>
         <span className="text-xs font-mono text-slate-400">
-          {targets.filter((t) => t.isAboveHorizon).length} above horizon
+          {targets.filter((t) => t.isAboveHorizon).length} {language === 'pt' ? 'acima do horizonte' : 'above horizon'}
         </span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-        {targets.map((t) => {
-          const azDir = getAzimuthDirection(t.azimuth);
-          const isPrime = t.altitude >= 30;
-          const isVisible = t.altitude > 0;
+        {targets.map((target) => {
+          const azDir = getAzimuthDirection(target.azimuth);
+          const isPrime = target.altitude >= 30;
+          const isVisible = target.altitude > 0;
 
           return (
             <div
-              key={t.id}
+              key={target.id}
               className={`glass-panel glass-panel-hover rounded-2xl p-4 flex flex-col justify-between transition-all ${
                 isPrime
                   ? 'border-indigo-500/40 glow-border-cyan'
@@ -47,20 +50,20 @@ export function CelestialGrid({ targets }: CelestialGridProps) {
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">
-                      {t.type === 'planet'
+                      {target.type === 'planet'
                         ? '🪐'
-                        : t.type === 'milkyway'
+                        : target.type === 'milkyway'
                         ? '🌌'
-                        : t.type === 'moon'
+                        : target.type === 'moon'
                         ? '🌕'
                         : '✨'}
                     </span>
                     <div>
                       <h3 className="font-bold text-sm text-white flex items-center gap-1.5">
-                        {t.name}
+                        {target.name}
                       </h3>
-                      {t.constellation && (
-                        <p className="text-[11px] text-slate-400">{t.constellation}</p>
+                      {target.constellation && (
+                        <p className="text-[11px] text-slate-400">{target.constellation}</p>
                       )}
                     </div>
                   </div>
@@ -74,13 +77,17 @@ export function CelestialGrid({ targets }: CelestialGridProps) {
                         : 'bg-slate-900 border-slate-800 text-slate-500'
                     }`}
                   >
-                    {isPrime ? 'Prime Alt' : isVisible ? 'Observable' : 'Below Horizon'}
+                    {isPrime
+                      ? (language === 'pt' ? 'Alt Ideal' : 'Prime Alt')
+                      : isVisible
+                      ? (language === 'pt' ? 'Observável' : 'Observable')
+                      : (language === 'pt' ? 'Abaixo do Horizonte' : 'Below Horizon')}
                   </span>
                 </div>
 
-                {t.notes && (
+                {target.notes && (
                   <p className="text-xs text-slate-300/90 mb-3 leading-relaxed">
-                    {t.notes}
+                    {target.notes}
                   </p>
                 )}
               </div>
@@ -88,21 +95,21 @@ export function CelestialGrid({ targets }: CelestialGridProps) {
               {/* Coordinates & Magnitude Telemetry */}
               <div className="grid grid-cols-3 gap-1.5 pt-2.5 border-t border-slate-800/80 text-[11px] font-mono">
                 <div className="bg-slate-900/80 rounded-lg p-1.5 text-center">
-                  <span className="text-slate-500 block text-[10px] uppercase">Altitude</span>
+                  <span className="text-slate-500 block text-[10px] uppercase">{t.celestialGrid.altitude}</span>
                   <span className={`font-bold ${isPrime ? 'text-cyan-300' : 'text-slate-200'}`}>
-                    {t.altitude}°
+                    {target.altitude}°
                   </span>
                 </div>
                 <div className="bg-slate-900/80 rounded-lg p-1.5 text-center">
-                  <span className="text-slate-500 block text-[10px] uppercase">Azimuth</span>
+                  <span className="text-slate-500 block text-[10px] uppercase">{t.celestialGrid.azimuth}</span>
                   <span className="font-bold text-slate-200">
-                    {t.azimuth}° <span className="text-slate-400 font-sans text-[10px]">({azDir})</span>
+                    {target.azimuth}° <span className="text-slate-400 font-sans text-[10px]">({azDir})</span>
                   </span>
                 </div>
                 <div className="bg-slate-900/80 rounded-lg p-1.5 text-center">
-                  <span className="text-slate-500 block text-[10px] uppercase">Mag</span>
+                  <span className="text-slate-500 block text-[10px] uppercase">{t.celestialGrid.magnitude}</span>
                   <span className="font-bold text-slate-200">
-                    {t.magnitude > 0 ? `+${t.magnitude}` : t.magnitude}
+                    {target.magnitude > 0 ? `+${target.magnitude}` : target.magnitude}
                   </span>
                 </div>
               </div>
@@ -113,3 +120,4 @@ export function CelestialGrid({ targets }: CelestialGridProps) {
     </div>
   );
 }
+
