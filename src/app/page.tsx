@@ -169,6 +169,11 @@ export default function HomePage() {
                 bestWindow={plan.bestWindow}
               />
 
+              {/* Interactive Altitude Progression Curve */}
+              {plan.targets && (
+                <AltitudeChart targets={plan.targets} />
+              )}
+
               {/* Celestial Body Search Bar & Observation Windows Filter */}
               {plan.searchCatalog && (
                 <CelestialSearch targets={plan.searchCatalog} />
@@ -177,19 +182,9 @@ export default function HomePage() {
               {/* Itinerary Timeline Windows */}
               <ItineraryTimeline windows={plan.windows} isLoading={loading} />
 
-              {/* Visible Satellite Passes (ISS & Tiangong) */}
-              {plan.satellites && plan.satellites.length > 0 && (
-                <SatellitePasses passes={plan.satellites} />
-              )}
-
               {/* Active Meteor Showers */}
               {plan.meteorShowers && plan.meteorShowers.length > 0 && (
                 <MeteorShowers showers={plan.meteorShowers} />
-              )}
-
-              {/* Interactive Altitude Progression Curve */}
-              {plan.targets && (
-                <AltitudeChart targets={plan.targets} />
               )}
 
               {/* Hourly Sky Breakdown Spectrum */}
@@ -199,6 +194,11 @@ export default function HomePage() {
 
               {/* Celestial Target Cards */}
               <CelestialGrid targets={plan.targets} />
+
+              {/* Visible Satellite Passes (ISS & Tiangong) */}
+              {plan.satellites && plan.satellites.length > 0 && (
+                <SatellitePasses passes={plan.satellites} />
+              )}
             </>
           )}
         </main>

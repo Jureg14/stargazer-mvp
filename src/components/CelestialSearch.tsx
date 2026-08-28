@@ -12,7 +12,7 @@ type DayFilter = 'all' | 'night_twilight' | 'daytime';
 type SortOption = 'chronological' | 'altitude' | 'magnitude' | 'name';
 
 export function CelestialSearch({ targets = [] }: CelestialSearchProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<CelestialBodyType | 'all'>('all');
   const [maxMag, setMaxMag] = useState<number>(10);
