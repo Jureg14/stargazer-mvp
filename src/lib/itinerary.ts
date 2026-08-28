@@ -6,6 +6,7 @@ import { calculateMoonInfo } from './astro/moon';
 import { calculatePlanets } from './astro/planets';
 import { getStationPasses } from './astro/satellites';
 import { calculateTwilight } from './astro/twilight';
+import { calculateSearchCatalog } from './astro/celestialSearch';
 import { clusterObservationWindows } from './itinerary/cluster';
 import { generateNightSummary } from './itinerary/formatter';
 import { evaluateHourlyQuality, EvaluatedHour } from './scoring/scoreEngine';
@@ -17,6 +18,7 @@ export * from './types/astro';
 export * from './types/weather';
 export * from './types/itinerary';
 export * from './astro/bortle';
+export * from './astro/celestialSearch';
 
 /**
  * Master itinerary orchestrator for a given observer coordinates, date, and Bortle class.
@@ -46,6 +48,7 @@ export async function generateStargazingPlan(
   // 3. Compute satellite passes (ISS & Tiangong) and active meteor showers
   const satellites = await getStationPasses(lat, lon, weatherData.elevationMeters, queryDate);
   const meteorShowers = calculateMeteorShowers(queryDate, observer, moon);
+  const searchCatalog = calculateSearchCatalog(queryDate, observer);
 
   // Combine targets for full catalog view
   const allTargets = [...planets, ...dsoTargets].sort((a, b) => b.altitude - a.altitude);
@@ -117,6 +120,7 @@ export async function generateStargazingPlan(
     satellites,
     meteorShowers,
     targets: allTargets,
+    searchCatalog,
     hourlyTimeline: evaluatedHours.map((h) => h.breakdown),
   };
 }

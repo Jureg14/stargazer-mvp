@@ -94,3 +94,33 @@ export interface CelestialTarget {
   notes?: string;
   altitudeHistory?: AltitudePoint[]; // Altitude progression across the night
 }
+
+export type CelestialBodyType = 'planet' | 'star' | 'constellation' | 'dso' | 'moon';
+
+export interface CulminationWindow {
+  riseTime: string | null;       // ISO string
+  peakTime: string;              // ISO string (highest point in the sky)
+  setTime: string | null;        // ISO string
+  peakAltitudeDeg: number;
+  peakAzimuthDeg: number;
+  sunAltAtPeak: number;
+  daytimeCategory: 'night' | 'twilight' | 'daytime';
+  isDaytimeVisible: boolean;     // e.g. true for Moon, Sun, or exceptionally bright Venus
+  azimuthDirection: string;      // e.g. 'N', 'S', 'NE', etc.
+  dayLabel: string;              // e.g. 'Today', 'Tonight', 'Tomorrow Morning', 'Tomorrow Afternoon'
+}
+
+export interface SearchableCelestialTarget {
+  id: string;
+  name: string;
+  type: CelestialBodyType;
+  magnitude: number;
+  constellation: string;
+  description: string;
+  notes?: string;
+  window: CulminationWindow;
+  currentAltitude: number;
+  currentAzimuth: number;
+  isAboveHorizon: boolean;
+  minBortleClass?: BortleClass;
+}

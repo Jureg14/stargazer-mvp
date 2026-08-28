@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from '@/components/Header';
 import { LocationSearch, LocationState } from '@/components/LocationSearch';
 import { SkyConditionsHero } from '@/components/SkyConditionsHero';
+import { CelestialSearch } from '@/components/CelestialSearch';
 import { ItineraryTimeline } from '@/components/ItineraryTimeline';
 import { HourlyTimelineBar } from '@/components/HourlyTimelineBar';
 import { AltitudeChart } from '@/components/AltitudeChart';
@@ -157,6 +158,11 @@ export default function HomePage() {
                 moon={plan.moon}
                 bestWindow={plan.bestWindow}
               />
+
+              {/* Celestial Body Search Bar & Observation Windows Filter */}
+              {plan.searchCatalog && (
+                <CelestialSearch targets={plan.searchCatalog} />
+              )}
 
               {/* Itinerary Timeline Windows */}
               <ItineraryTimeline windows={plan.windows} isLoading={loading} />
