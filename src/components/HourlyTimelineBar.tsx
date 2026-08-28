@@ -11,29 +11,47 @@ interface HourlyTimelineBarProps {
 export function HourlyTimelineBar({ timeline }: HourlyTimelineBarProps) {
   const [selectedHour, setSelectedHour] = useState<HourlyScoreBreakdown | null>(null);
 
-  // Filter timeline for evening to morning hours (Sun altitude <= 2 deg)
-  const nightTimeline = timeline.filter((h) => h.sunAlt <= 2);
-  const displayTimeline = nightTimeline.length > 0 ? nightTimeline : timeline.slice(16, 32);
+  // Filter timeline to show the target night sequence: from evening dusk (Day 1) to morning dawn (Day 2)
+  // Find the first index after hour 12 where Sun altitude drops below 2 degrees
+  let startIndex = timeline.findIndex((h) => {
+    const d = new Date(h.time);
+    return d.getUTCHours() >= 12 && h.sunAlt <= 2;
+  });
 
-  if (displayTimeline.length === 0) return null;
+  if (startIndex === -1) {
+    startIndex = timeline.findIndex((h) => h.sunAlt <= 2);
+  }
+  if (startIndex === -1) startIndex = 0;
+
+  const displayTimeline: HourlyScoreBreakdown[] = [];
+  for (let i = startIndex; i < timeline.length; i++) {
+    const h = timeline[i];
+    if (displayTimeline.length > 0 && h.sunAlt > 2) {
+      break; // End sequence at morning sunrise
+    }
+    displayTimeline.push(h);
+  }
+
+  const finalTimeline = displayTimeline.length > 0 ? displayTimeline : timeline.slice(12, 28);
 
   return (
     <div className="glass-panel rounded-2xl p-5 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <span>📊</span> Night Sky Hourly Spectrum
+          <span>📊</span> Night Sky Hourly Spectrum (Dusk to Dawn)
         </h2>
         <span className="text-xs text-slate-400">
-          Click any hour bar for celestial breakdown
+          Click any hour bar for detailed sky quality breakdown
         </span>
       </div>
 
       {/* Hourly Timeline Chart */}
       <div className="overflow-x-auto pb-2">
-        <div className="flex items-end gap-1.5 min-w-[500px] h-32 pt-4 px-1">
-          {displayTimeline.map((h, i) => {
+        <div className="flex items-end gap-1.5 min-w-[550px] h-36 pt-4 px-1">
+          {finalTimeline.map((h, i) => {
             const timeObj = new Date(h.time);
             const hourLabel = format(timeObj, 'HH:mm');
+            const dateLabel = format(timeObj, 'dd/MM');
             const heightPct = Math.max(8, h.totalScore);
             const isSelected = selectedHour?.time === h.time;
 
@@ -79,14 +97,19 @@ export function HourlyTimelineBar({ timeline }: HourlyTimelineBarProps) {
                   title={`${h.cloudCover}% cloud cover`}
                 />
 
-                {/* Time Label */}
-                <span
-                  className={`text-[11px] font-mono tracking-tighter ${
-                    isSelected ? 'font-bold text-white' : 'text-slate-400'
-                  }`}
-                >
-                  {hourLabel}
-                </span>
+                {/* Time & Date Stacked Label */}
+                <div className="flex flex-col items-center leading-tight">
+                  <span
+                    className={`text-[11px] font-mono tracking-tighter ${
+                      isSelected ? 'font-bold text-white' : 'text-slate-300'
+                    }`}
+                  >
+                    {hourLabel}
+                  </span>
+                  <span className="text-[9px] font-mono text-slate-500">
+                    {dateLabel}
+                  </span>
+                </div>
               </button>
             );
           })}
@@ -99,7 +122,7 @@ export function HourlyTimelineBar({ timeline }: HourlyTimelineBarProps) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
-                {format(new Date(selectedHour.time), 'HH:mm')}
+                {format(new Date(selectedHour.time), 'dd/MM HH:mm')}
               </span>
               <span className="text-xs text-slate-300 font-medium">
                 Score: <strong className="text-cyan-300 font-mono">{selectedHour.totalScore}/100</strong>

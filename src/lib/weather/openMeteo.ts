@@ -1,4 +1,5 @@
 import { HourlyWeatherRecord, RawOpenMeteoResponse } from '../types/weather';
+import { estimateSeeingFromMeteorology } from './meteoblue';
 
 /**
  * Fetches hourly weather variables from Open-Meteo for stargazing evaluation.
@@ -47,19 +48,36 @@ export async function fetchWeatherForecast(
   for (let i = 0; i < times.length; i++) {
     const temp = data.hourly.temperature_2m?.[i] ?? 15;
     const dew = data.hourly.dew_point_2m?.[i] ?? 10;
+    const cloudCover = data.hourly.cloudcover?.[i] ?? 0;
+    const visibilityMeters = data.hourly.visibility?.[i] ?? 10000;
+    const windSpeedKmh = data.hourly.windspeed_10m?.[i] ?? 0;
+    const relativeHumidity = data.hourly.relative_humidity_2m?.[i] ?? 50;
+    const dewDepressionC = Math.max(0, temp - dew);
+
+    const seeing = estimateSeeingFromMeteorology(
+      windSpeedKmh,
+      dewDepressionC,
+      relativeHumidity,
+      cloudCover,
+      visibilityMeters
+    );
 
     records.push({
       time: new Date(times[i]),
-      cloudCover: data.hourly.cloudcover?.[i] ?? 0,
+      cloudCover,
       cloudLow: data.hourly.cloudcover_low?.[i] ?? 0,
       cloudMid: data.hourly.cloudcover_mid?.[i] ?? 0,
       cloudHigh: data.hourly.cloudcover_high?.[i] ?? 0,
-      visibilityMeters: data.hourly.visibility?.[i] ?? 10000,
-      windSpeedKmh: data.hourly.windspeed_10m?.[i] ?? 0,
-      relativeHumidity: data.hourly.relative_humidity_2m?.[i] ?? 50,
+      visibilityMeters,
+      windSpeedKmh,
+      relativeHumidity,
       temperatureC: temp,
       dewPointC: dew,
-      dewDepressionC: Math.max(0, temp - dew),
+      dewDepressionC,
+      seeingIndex: seeing.seeingIndex,
+      seeingArcsec: seeing.seeingArcsec,
+      jetStreamKmh: seeing.jetStreamKmh,
+      badLayers: seeing.badLayers,
     });
   }
 

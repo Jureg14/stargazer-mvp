@@ -10,6 +10,8 @@ import { AltitudeChart } from '@/components/AltitudeChart';
 import { SatellitePasses } from '@/components/SatellitePasses';
 import { MeteorShowers } from '@/components/MeteorShowers';
 import { CelestialGrid } from '@/components/CelestialGrid';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
+import { PushReminders } from '@/components/PushReminders';
 import { BortleClass } from '@/lib/types/astro';
 import { StargazeItineraryResponse } from '@/lib/types/itinerary';
 
@@ -115,6 +117,9 @@ export default function HomePage() {
         />
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+          {/* PWA Install Banner */}
+          <PWAInstallPrompt />
+
           {/* Location Search Bar */}
           <LocationSearch
             location={location}
@@ -135,13 +140,18 @@ export default function HomePage() {
             </div>
           )}
 
+          {/* Push Observation Alerts */}
+          {plan && (
+            <PushReminders bestWindow={plan.bestWindow} locationName={location.name} />
+          )}
+
           {/* Loading Indicator Banner */}
           {loading && !plan && (
             <div className="glass-panel rounded-2xl p-12 text-center space-y-3 animate-pulse">
               <div className="text-4xl animate-bounce">🛰️</div>
-              <h2 className="text-lg font-bold text-white">Calculating v2 Celestial Ephemeris</h2>
+              <h2 className="text-lg font-bold text-white">Calculating v3 Pro Ephemeris & Atmospheric Seeing</h2>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Tracking ISS passes, active meteor showers, Bortle sky models, and planetary orbits...
+                Tracking ISS passes, atmospheric seeing indices, Geohash cached ephemeris, and planetary orbits...
               </p>
             </div>
           )}

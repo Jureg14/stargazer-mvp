@@ -1,6 +1,6 @@
 import { EvaluatedHour } from '../scoring/scoreEngine';
 import { CelestialTarget, MeteorShower, MoonInfo, SatellitePass } from '../types/astro';
-import { ObservationWindow } from '../types/itinerary';
+import { ObservationWindow, WindowScoreDetails, WindowScoreFactor } from '../types/itinerary';
 import { generateWindowNarrative } from './formatter';
 
 /**
@@ -113,6 +113,133 @@ function buildWindowFromGroup(
   const targets = Array.from(targetMap.values());
   const durationMinutes = Math.round((intervalEnd.getTime() - startDate.getTime()) / (60 * 1000));
 
+  // Compute detailed score breakdown for breakdown popup modal
+  const avgSunAlt = Math.round((group.reduce((a, b) => a + b.sunAlt, 0) / group.length) * 10) / 10;
+  const factors: WindowScoreFactor[] = [];
+
+  if (avgSunAlt <= -18) {
+    factors.push({
+      category: 'Solar Darkness',
+      score: 20,
+      description: `True Astronomical Darkness (Sun altitude ${avgSunAlt}°)`,
+      status: 'positive',
+    });
+  } else if (avgSunAlt <= -12) {
+    factors.push({
+      category: 'Solar Darkness',
+      score: 10,
+      description: `Astronomical Twilight (Sun altitude ${avgSunAlt}°)`,
+      status: 'positive',
+    });
+  } else {
+    factors.push({
+      category: 'Solar Darkness',
+      score: -20,
+      description: `Nautical Twilight Glow (Sun altitude ${avgSunAlt}°)`,
+      status: 'negative',
+    });
+  }
+
+  if (avgCloud <= 10) {
+    factors.push({
+      category: 'Cloud Cover',
+      score: 25,
+      description: `Pristine Clear Skies (${avgCloud}% cloud cover)`,
+      status: 'positive',
+    });
+  } else if (avgCloud <= 25) {
+    factors.push({
+      category: 'Cloud Cover',
+      score: 15,
+      description: `Mostly Clear (${avgCloud}% cloud cover)`,
+      status: 'positive',
+    });
+  } else if (avgCloud <= 40) {
+    factors.push({
+      category: 'Cloud Cover',
+      score: 0,
+      description: `Scattered Clouds (${avgCloud}% cloud cover)`,
+      status: 'neutral',
+    });
+  } else {
+    factors.push({
+      category: 'Cloud Cover',
+      score: -30,
+      description: `Significant Cloud Cover (${avgCloud}% cloud cover)`,
+      status: 'negative',
+    });
+  }
+
+  if (avgMoonAlt <= 0) {
+    factors.push({
+      category: 'Lunar Illumination',
+      score: 15,
+      description: 'Moon below horizon (Dark natural sky)',
+      status: 'positive',
+    });
+  } else if (moonInfo.illuminationFraction <= 0.15) {
+    factors.push({
+      category: 'Lunar Illumination',
+      score: 10,
+      description: `Minimal Moon Glare (${Math.round(moonInfo.illuminationFraction * 100)}% Crescent)`,
+      status: 'positive',
+    });
+  } else if (moonInfo.illuminationFraction <= 0.40) {
+    factors.push({
+      category: 'Lunar Illumination',
+      score: 0,
+      description: `Moderate Moonlight (${Math.round(moonInfo.illuminationFraction * 100)}% illuminated)`,
+      status: 'neutral',
+    });
+  } else {
+    factors.push({
+      category: 'Lunar Illumination',
+      score: -25,
+      description: `Bright Lunar Glare (${Math.round(moonInfo.illuminationFraction * 100)}% illuminated)`,
+      status: 'negative',
+    });
+  }
+
+  if (seeing === 'Excellent') {
+    factors.push({
+      category: 'Atmospheric Seeing',
+      score: 10,
+      description: 'Pristine sub-arcsecond seeing stability',
+      status: 'positive',
+    });
+  } else if (seeing === 'Good') {
+    factors.push({
+      category: 'Atmospheric Seeing',
+      score: 5,
+      description: 'Good seeing conditions & steady air',
+      status: 'positive',
+    });
+  } else {
+    factors.push({
+      category: 'Atmospheric Seeing',
+      score: -15,
+      description: 'Atmospheric turbulence & unsteady air',
+      status: 'negative',
+    });
+  }
+
+  const optimalTargetsCount = targets.filter((t) => t.isOptimal).length;
+  const targetBonus = Math.min(15, optimalTargetsCount * 5);
+  if (targetBonus > 0) {
+    factors.push({
+      category: 'Target Availability',
+      score: targetBonus,
+      description: `${optimalTargetsCount} prime target${optimalTargetsCount > 1 ? 's' : ''} visible above 25° horizon altitude`,
+      status: 'positive',
+    });
+  }
+
+  const scoreDetails: WindowScoreDetails = {
+    baseScore: 50,
+    factors,
+    finalScore: avgScore,
+  };
+
   const partialWindow: Partial<ObservationWindow> = {
     id: `window-${index}`,
     start: startDate.toISOString(),
@@ -129,6 +256,7 @@ function buildWindowFromGroup(
     targets,
     satellites: matchingSats,
     meteors,
+    scoreDetails,
   };
 
   const narrative = generateWindowNarrative(partialWindow);
@@ -150,5 +278,6 @@ function buildWindowFromGroup(
     targets,
     satellites: matchingSats,
     meteors,
+    scoreDetails,
   };
 }

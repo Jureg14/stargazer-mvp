@@ -10,6 +10,10 @@ export interface HourlyWeatherRecord {
   temperatureC: number;      // Celsius
   dewPointC: number;         // Celsius
   dewDepressionC: number;    // temperature - dewPoint
+  seeingIndex: number;       // 1 (Poor) to 5 (Excellent)
+  seeingArcsec: number;      // Estimated seeing resolution in arcseconds (e.g. 0.8 - 3.5)
+  jetStreamKmh?: number;     // Jet stream speed in km/h
+  badLayers?: number;        // Count of turbulent atmospheric layers
 }
 
 export interface RawOpenMeteoResponse {

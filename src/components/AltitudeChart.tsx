@@ -9,6 +9,7 @@ interface AltitudeChartProps {
 }
 
 const TARGET_COLORS: Record<string, string> = {
+  moon: '#e2e8f0',      // glowing silver/pearl
   saturn: '#fbbf24',    // amber
   jupiter: '#60a5fa',   // blue
   mars: '#f87171',      // red
@@ -21,7 +22,8 @@ const TARGET_COLORS: Record<string, string> = {
 };
 
 export function AltitudeChart({ targets }: AltitudeChartProps) {
-  const [activeTargetId, setActiveTargetId] = useState<string | null>(null);
+  const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
+  const [hoveredTargetId, setHoveredTargetId] = useState<string | null>(null);
 
   const targetsWithCurves = targets.filter((t) => t.altitudeHistory && t.altitudeHistory.length > 0);
   if (targetsWithCurves.length === 0) return null;
@@ -42,6 +44,9 @@ export function AltitudeChart({ targets }: AltitudeChartProps) {
   const getX = (index: number) => padLeft + (index / (samplePoints.length - 1)) * chartWidth;
   const getY = (alt: number) => padTop + chartHeight - (Math.max(0, Math.min(90, alt)) / 90) * chartHeight;
 
+  const activeTargetId = hoveredTargetId ?? selectedTargetId;
+  const activeTarget = targetsWithCurves.find((t) => t.id === activeTargetId);
+
   return (
     <div className="glass-panel rounded-2xl p-5 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -49,7 +54,7 @@ export function AltitudeChart({ targets }: AltitudeChartProps) {
           <span>📈</span> Celestial Altitude Progression (Dusk to Dawn)
         </h2>
         <span className="text-xs text-slate-400">
-          Target elevation curves (0° Horizon to 90° Zenith)
+          Hover or click any curve or legend pill to highlight line trajectory
         </span>
       </div>
 
@@ -57,23 +62,57 @@ export function AltitudeChart({ targets }: AltitudeChartProps) {
       <div className="flex flex-wrap gap-2 pt-1">
         {targetsWithCurves.map((t) => {
           const color = TARGET_COLORS[t.id] ?? '#94a3b8';
-          const isSelected = activeTargetId === t.id;
+          const isHighlighted = activeTargetId === t.id;
 
           return (
             <button
               key={t.id}
-              onClick={() => setActiveTargetId(isSelected ? null : t.id)}
+              onClick={() => setSelectedTargetId(selectedTargetId === t.id ? null : t.id)}
+              onMouseEnter={() => setHoveredTargetId(t.id)}
+              onMouseLeave={() => setHoveredTargetId(null)}
               className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-                isSelected
-                  ? 'bg-slate-800 border-white text-white shadow-md'
+                isHighlighted
+                  ? 'bg-slate-800 border-white text-white shadow-lg scale-105 ring-1 ring-white/40'
                   : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
               }`}
             >
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+              <span
+                className={`w-2 h-2 rounded-full transition-transform ${isHighlighted ? 'scale-125' : ''}`}
+                style={{ backgroundColor: color, boxShadow: isHighlighted ? `0 0 8px ${color}` : undefined }}
+              />
               <span>{t.name}</span>
             </button>
           );
         })}
+      </div>
+
+      {/* Target Info Bar (Fixed height to prevent layout shift & hover flickering) */}
+      <div className="h-9 bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 text-xs flex items-center justify-between text-slate-200 transition-colors duration-150">
+        {activeTarget ? (
+          <>
+            <div className="flex items-center gap-2">
+              <span
+                className="w-2.5 h-2.5 rounded-full"
+                style={{
+                  backgroundColor: TARGET_COLORS[activeTarget.id] ?? '#94a3b8',
+                  boxShadow: `0 0 8px ${TARGET_COLORS[activeTarget.id] ?? '#94a3b8'}`,
+                }}
+              />
+              <span className="font-bold text-white">{activeTarget.name}</span>
+              <span className="text-slate-400">({activeTarget.constellation || activeTarget.type})</span>
+            </div>
+            <div className="flex items-center gap-3 text-slate-300 font-mono">
+              <span>Alt: <strong>{activeTarget.altitude}°</strong></span>
+              <span>Mag: <strong>{activeTarget.magnitude}</strong></span>
+              <span className="text-cyan-300">{activeTarget.isOptimal ? '★ Optimal View' : activeTarget.notes || ''}</span>
+            </div>
+          </>
+        ) : (
+          <div className="text-slate-500 text-xs flex items-center gap-2 w-full justify-center font-mono">
+            <span>✨</span>
+            <span>Hover or click any line or legend pill to inspect celestial altitude & stats</span>
+          </div>
+        )}
       </div>
 
       {/* SVG Curve Chart */}
@@ -120,7 +159,8 @@ export function AltitudeChart({ targets }: AltitudeChartProps) {
             {/* Target Altitude Curves */}
             {targetsWithCurves.map((t) => {
               const color = TARGET_COLORS[t.id] ?? '#94a3b8';
-              const isDimmed = activeTargetId !== null && activeTargetId !== t.id;
+              const isHighlighted = activeTargetId === t.id;
+              const isDimmed = activeTargetId !== null && !isHighlighted;
               const points = t.altitudeHistory ?? [];
 
               const pathData = points
@@ -128,13 +168,33 @@ export function AltitudeChart({ targets }: AltitudeChartProps) {
                 .join(' ');
 
               return (
-                <g key={t.id} opacity={isDimmed ? 0.2 : 1.0} className="transition-opacity duration-200">
+                <g
+                  key={t.id}
+                  opacity={isDimmed ? 0.15 : 1.0}
+                  className="transition-all duration-200"
+                  onMouseEnter={() => setHoveredTargetId(t.id)}
+                  onMouseLeave={() => setHoveredTargetId(null)}
+                >
+                  {/* Invisible wide hit-area stroke for effortless mouse hover */}
+                  <path
+                    d={pathData}
+                    fill="none"
+                    stroke="transparent"
+                    strokeWidth="16"
+                    strokeLinecap="round"
+                    className="cursor-pointer"
+                  />
+                  {/* Glowing visible target curve */}
                   <path
                     d={pathData}
                     fill="none"
                     stroke={color}
-                    strokeWidth={activeTargetId === t.id ? '3' : '2'}
+                    strokeWidth={isHighlighted ? '4' : '2'}
                     strokeLinecap="round"
+                    className="pointer-events-none transition-all duration-200"
+                    style={{
+                      filter: isHighlighted ? `drop-shadow(0 0 6px ${color})` : undefined,
+                    }}
                   />
                 </g>
               );

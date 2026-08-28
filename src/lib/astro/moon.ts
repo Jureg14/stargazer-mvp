@@ -46,3 +46,37 @@ export function calculateMoonInfo(date: Date, observer: Observer): MoonInfo {
     setTime: set ? set.date : undefined,
   };
 }
+
+/**
+ * Calculates Moon trajectory curve and CelestialTarget representation for Altitude Progression Graph.
+ */
+export function calculateMoonTarget(date: Date, observer: Observer, moonInfo: MoonInfo) {
+  const altitudeHistory = [];
+  const baseTime = new Date(date);
+  baseTime.setUTCHours(18, 0, 0, 0);
+
+  for (let h = 0; h < 14; h++) {
+    const stepDate = new Date(baseTime.getTime() + h * 3600 * 1000);
+    const stepEq = Equator(Body.Moon, stepDate, observer, true, true);
+    const stepHor = Horizon(stepDate, observer, stepEq.ra, stepEq.dec, 'normal');
+    altitudeHistory.push({
+      time: stepDate.toISOString(),
+      altitude: Math.round(stepHor.altitude * 10) / 10,
+      isAboveHorizon: stepHor.altitude > 0,
+    });
+  }
+
+  return {
+    id: 'moon',
+    name: `Moon (${moonInfo.phaseName})`,
+    type: 'moon' as const,
+    body: Body.Moon,
+    altitude: moonInfo.altitude,
+    azimuth: moonInfo.azimuth,
+    magnitude: moonInfo.magnitude,
+    isAboveHorizon: moonInfo.isAboveHorizon,
+    isOptimal: moonInfo.altitude >= 20,
+    notes: `${Math.round(moonInfo.illuminationFraction * 100)}% illuminated; ${moonInfo.phaseName}`,
+    altitudeHistory,
+  };
+}

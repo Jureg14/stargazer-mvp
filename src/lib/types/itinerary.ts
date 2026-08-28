@@ -16,6 +16,19 @@ export interface HourlyScoreBreakdown {
   targetNames: string[];
 }
 
+export interface WindowScoreFactor {
+  category: string;
+  score: number;
+  description: string;
+  status: 'positive' | 'neutral' | 'negative';
+}
+
+export interface WindowScoreDetails {
+  baseScore: number;
+  factors: WindowScoreFactor[];
+  finalScore: number;
+}
+
 export interface ObservationWindow {
   id: string;
   start: string;
@@ -33,6 +46,7 @@ export interface ObservationWindow {
   targets: CelestialTarget[];
   satellites?: SatellitePass[];
   meteors?: MeteorShower[];
+  scoreDetails?: WindowScoreDetails;
 }
 
 export interface StargazeItineraryResponse {

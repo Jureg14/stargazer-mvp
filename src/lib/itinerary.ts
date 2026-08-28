@@ -2,7 +2,7 @@ import { Observer } from 'astronomy-engine';
 import { getBortleInfo } from './astro/bortle';
 import { calculateDSOVisibility } from './astro/dso';
 import { calculateMeteorShowers } from './astro/meteors';
-import { calculateMoonInfo } from './astro/moon';
+import { calculateMoonInfo, calculateMoonTarget } from './astro/moon';
 import { calculatePlanets } from './astro/planets';
 import { getStationPasses } from './astro/satellites';
 import { calculateTwilight } from './astro/twilight';
@@ -12,6 +12,7 @@ import { evaluateHourlyQuality, EvaluatedHour } from './scoring/scoreEngine';
 import { BortleClass } from './types/astro';
 import { StargazeItineraryResponse } from './types/itinerary';
 import { fetchWeatherForecast } from './weather/openMeteo';
+import { cacheEngine } from './cache/cacheEngine';
 
 export * from './types/astro';
 export * from './types/weather';
@@ -28,6 +29,15 @@ export async function generateStargazingPlan(
   locationName?: string,
   userBortle: BortleClass = 4
 ): Promise<StargazeItineraryResponse> {
+  const cacheKey = cacheEngine.generateKey('stargaze', lat, lon, dateStr, `bortle-${userBortle}`);
+  const cachedPlan = cacheEngine.get<StargazeItineraryResponse>(cacheKey);
+
+  if (cachedPlan) {
+    return locationName && cachedPlan.location
+      ? { ...cachedPlan, location: { ...cachedPlan.location, name: locationName } }
+      : cachedPlan;
+  }
+
   const queryDate = new Date(`${dateStr}T12:00:00Z`);
 
   // 1. Fetch Open-Meteo weather forecast for target night (today through next morning)
@@ -40,6 +50,7 @@ export async function generateStargazingPlan(
   // 2. Compute astronomical positions & twilight bounds
   const twilight = calculateTwilight(queryDate, observer);
   const moon = calculateMoonInfo(queryDate, observer);
+  const moonTarget = calculateMoonTarget(queryDate, observer, moon);
   const planets = calculatePlanets(queryDate, observer);
   const dsoTargets = calculateDSOVisibility(queryDate, observer, userBortle);
 
@@ -47,8 +58,8 @@ export async function generateStargazingPlan(
   const satellites = await getStationPasses(lat, lon, weatherData.elevationMeters, queryDate);
   const meteorShowers = calculateMeteorShowers(queryDate, observer, moon);
 
-  // Combine targets for full catalog view
-  const allTargets = [...planets, ...dsoTargets].sort((a, b) => b.altitude - a.altitude);
+  // Combine targets for full catalog view (including Moon)
+  const allTargets = [moonTarget, ...planets, ...dsoTargets].sort((a, b) => b.altitude - a.altitude);
 
   // 4. Evaluate each hour across the night
   const evaluatedHours: EvaluatedHour[] = [];
@@ -98,7 +109,7 @@ export async function generateStargazingPlan(
 
   const bortleInfo = getBortleInfo(userBortle);
 
-  return {
+  const plan: StargazeItineraryResponse = {
     location: {
       lat,
       lon,
@@ -119,4 +130,7 @@ export async function generateStargazingPlan(
     targets: allTargets,
     hourlyTimeline: evaluatedHours.map((h) => h.breakdown),
   };
+
+  cacheEngine.set(cacheKey, plan, 3600_000); // Cache for 1 hour
+  return plan;
 }

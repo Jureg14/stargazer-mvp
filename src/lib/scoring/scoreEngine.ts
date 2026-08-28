@@ -44,6 +44,23 @@ export function evaluateHourlyQuality(
   const activeTargets: CelestialTarget[] = [];
   const targetNames: string[] = [];
 
+  // Evaluate Moon at this hour
+  if (moonAlt > 0) {
+    activeTargets.push({
+      id: 'moon',
+      name: `Moon (${moonInfo.phaseName})`,
+      type: 'moon',
+      body: Body.Moon,
+      altitude: moonAlt,
+      azimuth: Math.round(moonHor.azimuth * 10) / 10,
+      magnitude: moonInfo.magnitude,
+      isAboveHorizon: true,
+      isOptimal: moonAlt >= 15,
+      notes: `${Math.round(moonIllum * 100)}% illuminated; ${moonInfo.phaseName}`,
+    });
+    targetNames.push(`Moon (${Math.round(moonAlt)}°)`);
+  }
+
   // Evaluate planets at this hour
   for (const p of planets) {
     const pEq = Equator(p.body ?? Body.Saturn, time, observer, true, true);
