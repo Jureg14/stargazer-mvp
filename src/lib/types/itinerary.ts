@@ -1,4 +1,4 @@
-import { BortleInfo, CelestialTarget, MeteorShower, MoonInfo, SatellitePass, TwilightTimes } from './astro';
+import { BortleInfo, CelestialTarget, MeteorShower, MoonInfo, SatellitePass, SearchableCelestialTarget, TwilightTimes } from './astro';
 import { HourlyWeatherRecord } from './weather';
 
 export interface HourlyScoreBreakdown {
@@ -68,6 +68,7 @@ export interface StargazeItineraryResponse {
   satellites: SatellitePass[];
   meteorShowers: MeteorShower[];
   targets: CelestialTarget[];
+  searchCatalog?: SearchableCelestialTarget[];
   hourlyTimeline: HourlyScoreBreakdown[];
   weatherRecords?: HourlyWeatherRecord[];
 }
