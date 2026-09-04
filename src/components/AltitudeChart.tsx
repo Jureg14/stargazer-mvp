@@ -21,12 +21,17 @@ const TARGET_COLORS: Record<string, string> = {
   'm13-hercules': '#f472b6',  // pink
 };
 
+let cachedNowMs = typeof window !== 'undefined' ? Date.now() : 0;
+
 function subscribeCurrentTime(callback: () => void) {
-  const interval = setInterval(callback, 15000);
+  const interval = setInterval(() => {
+    cachedNowMs = Date.now();
+    callback();
+  }, 15000);
   return () => clearInterval(interval);
 }
 
-const getClientNowMs = () => Date.now();
+const getClientNowMs = () => cachedNowMs;
 const getServerNowMs = () => null;
 
 export function AltitudeChart({ targets }: AltitudeChartProps) {
