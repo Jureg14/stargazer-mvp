@@ -95,12 +95,6 @@ export function AltitudeChart({
           <span>📈</span> Celestial Altitude Progression (Dusk to Dawn)
         </h2>
         <div className="flex items-center gap-2 text-xs">
-          {currentTime && isCurrentTimeInWindow && (
-            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-950/70 border border-rose-800/80 text-rose-300 font-mono text-[11px]">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
-              <span>Now: {format(currentTime, 'HH:mm')}</span>
-            </span>
-          )}
           <span className="text-slate-400 hidden sm:inline">
             Hover or click any curve or legend pill to highlight line trajectory
           </span>
@@ -134,13 +128,6 @@ export function AltitudeChart({
           );
         })}
 
-        {isCurrentTimeInWindow && currentTime && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-rose-800/60 bg-rose-950/40 text-xs text-rose-300 font-medium select-none">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
-            <span className="w-3 border-b-2 border-dotted border-rose-400 inline-block" />
-            <span>Current Time ({format(currentTime, 'HH:mm')})</span>
-          </div>
-        )}
       </div>
 
       {/* Target Info Bar (Fixed height to prevent layout shift & hover flickering) */}

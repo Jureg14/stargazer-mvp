@@ -156,7 +156,7 @@ export function calculateTargetOptics(
       bestIndex = nonOver.length > 0 ? allCalculations.indexOf(nonOver[nonOver.length - 1]) : 0;
     }
     const chosen = allCalculations[bestIndex];
-    summaryText = `Use ${chosen.displayName} (${Math.round(chosen.magnification)}×) for planetary detail`;
+    summaryText = `Use ${chosen.displayName} for planetary detail`;
   } else if (isMoon) {
     // For the Moon, medium-high magnification resolves craters & rilles
     const mediumHigh = allCalculations.filter(
@@ -168,12 +168,12 @@ export function calculateTargetOptics(
       bestIndex = Math.min(allCalculations.length - 1, Math.floor(allCalculations.length / 2));
     }
     const chosen = allCalculations[bestIndex];
-    summaryText = `Use ${chosen.displayName} (${Math.round(chosen.magnification)}×) for crater detail`;
+    summaryText = `Use ${chosen.displayName} for crater detail`;
   } else if (isExtendedDSO) {
     // Extended nebulae and galaxies need lowest magnification for wide TFOV and bright exit pupil
     bestIndex = 0; // lowest magnification
     const chosen = allCalculations[bestIndex];
-    summaryText = `Use ${chosen.displayName} (${Math.round(chosen.magnification)}×) for wide-field`;
+    summaryText = `Use ${chosen.displayName} for wide-field`;
   } else if (isCompactDSO) {
     // Globular clusters and compact DSOs need medium magnification (~75x-120x) to resolve stars
     const medium = allCalculations.filter(
@@ -185,11 +185,11 @@ export function calculateTargetOptics(
       bestIndex = Math.min(allCalculations.length - 1, Math.floor(allCalculations.length / 2));
     }
     const chosen = allCalculations[bestIndex];
-    summaryText = `Use ${chosen.displayName} (${Math.round(chosen.magnification)}×) to resolve core stars`;
+    summaryText = `Use ${chosen.displayName} to resolve core stars`;
   } else {
     bestIndex = 0;
     const chosen = allCalculations[bestIndex];
-    summaryText = `Use ${chosen.displayName} (${Math.round(chosen.magnification)}×)`;
+    summaryText = `Use ${chosen.displayName}`;
   }
 
   // Mark recommended eyepiece

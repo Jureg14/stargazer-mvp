@@ -170,5 +170,5 @@ test('calculateTargetOptics generates Barlow combinations and recommends Barlow 
   // Should recommend 10mm + 2x Barlow (240x) instead of native 10mm (120x) for maximum planetary detail
   assert.equal(result.recommendedEyepiece.magnification, 240);
   assert.equal(result.recommendedEyepiece.barlowMultiplier, 2);
-  assert.equal(result.summaryText, 'Use 10mm + 2× Barlow (240×) for planetary detail');
+  assert.equal(result.summaryText, 'Use 10mm + 2× Barlow for planetary detail');
 });

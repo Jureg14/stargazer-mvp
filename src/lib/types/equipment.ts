@@ -40,7 +40,7 @@ export interface EyepieceCalculation {
 export interface TargetOpticsRecommendation {
   recommendedEyepiece: EyepieceCalculation;
   allCalculations: EyepieceCalculation[];
-  summaryText: string; // e.g. "Use 25mm (48×) for wide-field"
+  summaryText: string; // e.g. "Use 25mm for wide-field"
   maxUsefulMagnification: number; // 2 * apertureMm
   focalRatio: number; // F_scope / aperture
 }
