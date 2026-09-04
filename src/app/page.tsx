@@ -12,7 +12,6 @@ import { SatellitePasses } from '@/components/SatellitePasses';
 import { MeteorShowers } from '@/components/MeteorShowers';
 import { CelestialGrid } from '@/components/CelestialGrid';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
-import { PushReminders } from '@/components/PushReminders';
 import { BortleClass } from '@/lib/types/astro';
 import { StargazeItineraryResponse } from '@/lib/types/itinerary';
 
@@ -141,10 +140,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* Push Observation Alerts */}
-          {plan && (
-            <PushReminders bestWindow={plan.bestWindow} locationName={location.name} />
-          )}
 
           {/* Loading Indicator Banner */}
           {loading && !plan && (

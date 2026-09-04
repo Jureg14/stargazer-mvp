@@ -127,6 +127,59 @@ export function calculateSatellitePasses(
   return passes;
 }
 
+export function deduplicatePasses(passes: SatellitePass[]): SatellitePass[] {
+  const sorted = [...passes].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+  const unique: SatellitePass[] = [];
+
+  for (const pass of sorted) {
+    const existingIndex = unique.findIndex((existing) => {
+      const isSameSat =
+        existing.noradId === pass.noradId ||
+        existing.satelliteName.slice(0, 3).toUpperCase() === pass.satelliteName.slice(0, 3).toUpperCase();
+
+      if (!isSameSat) return false;
+
+      // Passes within 35 minutes of each other represent the same orbital flyover
+      const timeDiffMs = Math.abs(new Date(existing.peakTime).getTime() - new Date(pass.peakTime).getTime());
+      return timeDiffMs < 35 * 60 * 1000;
+    });
+
+    if (existingIndex === -1) {
+      unique.push(pass);
+    } else {
+      // Retain pass with higher peak elevation
+      if (pass.maxAltitudeDeg > unique[existingIndex].maxAltitudeDeg) {
+        unique[existingIndex] = pass;
+      }
+    }
+  }
+
+  return unique;
+}
+
+/**
+ * Target definition for primary space stations.
+ * Specifically excludes secondary docked modules (e.g. Nauka, Wentian, Mengtian) to prevent duplicate passes.
+ */
+const TARGET_STATIONS = [
+  {
+    key: 'ISS',
+    primaryNoradId: 25544,
+    displayName: 'ISS (International Space Station)',
+    matches: (nameUpper: string, noradId: number) =>
+      noradId === 25544 || (nameUpper.includes('ISS') && !nameUpper.includes('DEB') && !nameUpper.includes('NAUKA')),
+    fallback: DEFAULT_STATION_TLES[0],
+  },
+  {
+    key: 'TIANGONG',
+    primaryNoradId: 48274,
+    displayName: 'Tiangong (Chinese Space Station)',
+    matches: (nameUpper: string, noradId: number) =>
+      noradId === 48274 || (nameUpper.includes('CSS') && nameUpper.includes('TIANHE')) || nameUpper.includes('TIANGONG'),
+    fallback: DEFAULT_STATION_TLES[1],
+  },
+];
+
 /**
  * Fetches fresh TLE data from CelesTrak with fallback to cached/default stations.
  */
@@ -137,6 +190,7 @@ export async function getStationPasses(
   date: Date
 ): Promise<SatellitePass[]> {
   let allPasses: SatellitePass[] = [];
+  const resolvedStations = new Set<string>();
 
   try {
     const res = await fetch('https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle', {
@@ -147,18 +201,37 @@ export async function getStationPasses(
       const text = await res.text();
       const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
 
+      // Parse 3-line sets from CelesTrak
+      interface ParsedEntry {
+        name: string;
+        line1: string;
+        line2: string;
+        noradId: number;
+      }
+      const entries: ParsedEntry[] = [];
       for (let i = 0; i < lines.length; i += 3) {
         const name = lines[i];
         const line1 = lines[i + 1];
         const line2 = lines[i + 2];
+        if (name && line1 && line2 && line1.startsWith('1 ') && line2.startsWith('2 ')) {
+          const noradId = parseInt(line1.substring(2, 7), 10);
+          entries.push({ name, line1, line2, noradId });
+        }
+      }
 
-        if (name && line1 && line2 && (name.includes('ISS') || name.includes('TIANGONG') || name.includes('CSS'))) {
-          const noradId = parseInt(line1.substring(2, 7), 10) || 25544;
+      // For each target station, find the exact primary NORAD entry or best match
+      for (const target of TARGET_STATIONS) {
+        const exactEntry =
+          entries.find((e) => e.noradId === target.primaryNoradId) ||
+          entries.find((e) => target.matches(e.name.toUpperCase(), e.noradId));
+
+        if (exactEntry) {
+          resolvedStations.add(target.key);
           const passes = calculateSatellitePasses(
-            line1,
-            line2,
-            name.includes('ISS') ? 'ISS (International Space Station)' : 'Tiangong (CSS Space Station)',
-            noradId,
+            exactEntry.line1,
+            exactEntry.line2,
+            target.displayName,
+            exactEntry.noradId,
             lat,
             lon,
             elevationMeters,
@@ -169,13 +242,17 @@ export async function getStationPasses(
       }
     }
   } catch {
-    // If external fetch fails, fallback to standard TLE calculations
-    for (const station of DEFAULT_STATION_TLES) {
+    // If fetch failed completely, fall back to default stations
+  }
+
+  // Ensure every target station is computed (fallback to default TLEs if not resolved)
+  for (const target of TARGET_STATIONS) {
+    if (!resolvedStations.has(target.key)) {
       const passes = calculateSatellitePasses(
-        station.line1,
-        station.line2,
-        station.name,
-        station.noradId,
+        target.fallback.line1,
+        target.fallback.line2,
+        target.displayName,
+        target.primaryNoradId,
         lat,
         lon,
         elevationMeters,
@@ -185,21 +262,5 @@ export async function getStationPasses(
     }
   }
 
-  if (allPasses.length === 0) {
-    for (const station of DEFAULT_STATION_TLES) {
-      const passes = calculateSatellitePasses(
-        station.line1,
-        station.line2,
-        station.name,
-        station.noradId,
-        lat,
-        lon,
-        elevationMeters,
-        date
-      );
-      allPasses = allPasses.concat(passes);
-    }
-  }
-
-  return allPasses.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+  return deduplicatePasses(allPasses);
 }
