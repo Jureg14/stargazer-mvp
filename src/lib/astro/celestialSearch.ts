@@ -13,8 +13,13 @@ import {
   BortleClass,
   CelestialBodyType,
   CulminationWindow,
+  DSOSubtype,
+  OpticsRequirement,
   SearchableCelestialTarget,
+  TargetCatalog,
 } from '../types/astro';
+import { MESSIER_CATALOG } from './data/messier';
+import { CALDWELL_CATALOG } from './data/caldwell';
 
 function getAzimuthCompass(deg: number): string {
   const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
@@ -26,6 +31,11 @@ interface StaticCelestialDef {
   id: string;
   name: string;
   type: CelestialBodyType;
+  catalog?: TargetCatalog;
+  dsoType?: DSOSubtype;
+  catalogNumber?: number;
+  ngc?: string;
+  opticsRequirement?: OpticsRequirement;
   raHours: number;
   decDeg: number;
   distLy?: number;
@@ -407,96 +417,15 @@ const CONSTELLATIONS_CATALOG: StaticCelestialDef[] = [
   },
 ];
 
-// 3. Deep Sky Objects (DSOs)
-const DSO_SEARCH_CATALOG: StaticCelestialDef[] = [
-  {
-    id: 'dso-m31',
-    name: 'Andromeda Galaxy (M31)',
-    type: 'dso',
-    raHours: 0.712,
-    decDeg: 41.269,
-    magnitude: 3.4,
-    constellation: 'Andromeda',
-    minBortleClass: 6,
-    description: 'Nearest major spiral galaxy to our own; contains 1 trillion stars.',
-    notes: 'Faint elongated naked-eye patch under Bortle ≤ 4 skies; beautiful in binoculars.',
-  },
-  {
-    id: 'dso-m42',
-    name: 'Orion Nebula (M42)',
-    type: 'dso',
-    raHours: 5.588,
-    decDeg: -5.391,
-    magnitude: 4.0,
-    constellation: 'Orion',
-    minBortleClass: 7,
-    description: 'Vibrant diffuse stellar nursery glowing in the sword of Orion.',
-    notes: 'Easily resolved in small telescopes showing Trapezium star cluster.',
-  },
-  {
-    id: 'dso-m45',
-    name: 'Pleiades Star Cluster (M45 / Seven Sisters)',
-    type: 'dso',
-    raHours: 3.790,
-    decDeg: 24.117,
-    magnitude: 1.6,
-    constellation: 'Taurus',
-    minBortleClass: 8,
-    description: 'Luminous open star cluster surrounded by sapphire reflection nebulosity.',
-    notes: 'Spectacular wide-field binocular target.',
-  },
-  {
-    id: 'dso-m13',
-    name: 'Great Hercules Globular Cluster (M13)',
-    type: 'dso',
-    raHours: 16.695,
-    decDeg: 36.460,
-    magnitude: 5.8,
-    constellation: 'Hercules',
-    minBortleClass: 5,
-    description: 'Densely packed spherical ball of over 300,000 ancient stars.',
-    notes: 'Best globular cluster observable in the Northern sky.',
-  },
-  {
-    id: 'dso-m8',
-    name: 'Lagoon Nebula (M8)',
-    type: 'dso',
-    raHours: 18.063,
-    decDeg: -24.383,
-    magnitude: 6.0,
-    constellation: 'Sagittarius',
-    minBortleClass: 5,
-    description: 'Giant interstellar emission cloud and star-forming region in Sagittarius.',
-    notes: 'Visible to the naked eye under pristine dark skies.',
-  },
-  {
-    id: 'dso-ngc3372',
-    name: 'Carina Nebula (NGC 3372 / Eta Carinae)',
-    type: 'dso',
-    raHours: 10.750,
-    decDeg: -59.867,
-    magnitude: 3.0,
-    constellation: 'Carina',
-    minBortleClass: 6,
-    description: 'Colossal emission nebula four times larger and brighter than the Orion Nebula.',
-    notes: 'Southern hemisphere showpiece surrounding hypergiant Eta Carinae.',
-  },
-  {
-    id: 'dso-omega-centauri',
-    name: 'Omega Centauri (NGC 5139)',
-    type: 'dso',
-    raHours: 13.447,
-    decDeg: -47.478,
-    magnitude: 3.9,
-    constellation: 'Centaurus',
-    minBortleClass: 6,
-    description: 'The most massive and luminous globular cluster orbiting the Milky Way (10M stars).',
-    notes: 'Visible naked-eye as a fuzzy star; resolves into millions of sparks in optics.',
-  },
+// 3. Special Celestial Showpieces (Galactic Center, etc.)
+const SPECIAL_DSO_CATALOG: StaticCelestialDef[] = [
   {
     id: 'dso-milkyway-core',
     name: 'Milky Way Galactic Core',
     type: 'dso',
+    catalog: 'solar',
+    dsoType: 'diffuse_nebula',
+    opticsRequirement: 'naked_eye',
     raHours: 17.761,
     decDeg: -29.008,
     magnitude: -1.0,
@@ -564,6 +493,13 @@ const PLANETS_CONFIG: PlanetDef[] = [
     body: Body.Neptune,
     description: 'Deep cobalt-blue Ice Giant planet at the outer edge of the Solar System.',
     notes: 'Magnitude ~7.8; requires binoculars or telescope to observe.',
+  },
+  {
+    id: 'planet-pluto',
+    name: 'Pluto (Dwarf Planet)',
+    body: Body.Pluto,
+    description: 'Dwarf planet at the outer frozen rim of the solar system in the Kuiper Belt.',
+    notes: 'Extreme visual observing challenge (magnitude ~+14.5). Requires 8"+ (200mm+) telescope and dark Bortle ≤ 3 skies.',
   },
 ];
 
@@ -669,7 +605,7 @@ export function calculateSearchCatalog(
   const searchStart = new Date(queryDate);
   searchStart.setUTCHours(12, 0, 0, 0);
 
-  // 1. Calculate Planets
+  // 1. Calculate Planets (including Pluto)
   for (const planet of PLANETS_CONFIG) {
     const illum = Illumination(planet.body, queryDate);
     const mag = Math.round(illum.mag * 10) / 10;
@@ -684,6 +620,8 @@ export function calculateSearchCatalog(
       id: planet.id,
       name: planet.name,
       type: 'planet',
+      catalog: 'solar',
+      opticsRequirement: planet.id === 'planet-pluto' ? 'large_telescope' : planet.id === 'planet-neptune' || planet.id === 'planet-uranus' ? 'binoculars' : 'naked_eye',
       magnitude: mag,
       constellation: constInfo.name,
       description: planet.description,
@@ -710,6 +648,8 @@ export function calculateSearchCatalog(
         id: 'moon',
         name: `Moon (${illumPct}% Illum)`,
         type: 'moon',
+        catalog: 'solar',
+        opticsRequirement: 'naked_eye',
         magnitude: mag,
         constellation: constInfo.name,
         description: `Lunar disc illuminated ${illumPct}%. Prominent craters and maria visible.`,
@@ -722,15 +662,26 @@ export function calculateSearchCatalog(
     }
   }
 
-  // 3. Calculate Static Targets (Stars, Constellations, DSOs)
-  const allStaticTargets = [
-    ...STARS_CATALOG,
-    ...CONSTELLATIONS_CATALOG,
-    ...DSO_SEARCH_CATALOG,
+  // 3. Calculate Static Targets (Stars, Constellations, Special DSOs, Full Messier & Caldwell Catalogs)
+  const allStaticTargets: StaticCelestialDef[] = [
+    ...STARS_CATALOG.map((s) => ({ ...s, catalog: 'star' as const, opticsRequirement: 'naked_eye' as const })),
+    ...CONSTELLATIONS_CATALOG.map((c) => ({ ...c, catalog: 'constellation' as const, opticsRequirement: 'naked_eye' as const })),
+    ...SPECIAL_DSO_CATALOG,
+    ...MESSIER_CATALOG,
+    ...CALDWELL_CATALOG,
   ];
 
   for (let i = 0; i < allStaticTargets.length; i++) {
     const target = allStaticTargets[i];
+
+    // Latitude pre-filtering optimization:
+    // Max theoretical altitude at culmination is 90 - |observerLat - decDeg|.
+    // If max theoretical altitude <= 0 deg, the object never rises above the horizon for this observer!
+    const maxAlt = 90 - Math.abs(observer.latitude - target.decDeg);
+    if (maxAlt <= 0) {
+      continue;
+    }
+
     // Define temporary star slot (Star1)
     DefineStar(Body.Star1, target.raHours, target.decDeg, target.distLy ?? 1000);
 
@@ -744,6 +695,11 @@ export function calculateSearchCatalog(
       id: target.id,
       name: target.name,
       type: target.type,
+      catalog: target.catalog,
+      dsoType: target.dsoType,
+      catalogNumber: target.catalogNumber,
+      ngc: target.ngc,
+      opticsRequirement: target.opticsRequirement,
       magnitude: target.magnitude,
       constellation: target.constellation,
       description: target.description,

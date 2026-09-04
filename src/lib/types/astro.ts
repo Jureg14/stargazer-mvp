@@ -110,10 +110,28 @@ export interface CulminationWindow {
   dayLabel: string;              // e.g. 'Today', 'Tonight', 'Tomorrow Morning', 'Tomorrow Afternoon'
 }
 
+export type DSOSubtype =
+  | 'galaxy'
+  | 'diffuse_nebula'
+  | 'planetary_nebula'
+  | 'supernova_remnant'
+  | 'open_cluster'
+  | 'globular_cluster'
+  | 'asterism'
+  | 'dark_nebula';
+
+export type TargetCatalog = 'messier' | 'caldwell' | 'solar' | 'star' | 'constellation';
+export type OpticsRequirement = 'naked_eye' | 'binoculars' | 'small_telescope' | 'large_telescope';
+
 export interface SearchableCelestialTarget {
   id: string;
   name: string;
   type: CelestialBodyType;
+  catalog?: TargetCatalog;
+  dsoType?: DSOSubtype;
+  catalogNumber?: number;
+  ngc?: string;
+  opticsRequirement?: OpticsRequirement;
   magnitude: number;
   constellation: string;
   description: string;
