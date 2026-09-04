@@ -6,11 +6,10 @@ import { Header } from '@/components/Header';
 import { LocationSearch, LocationState } from '@/components/LocationSearch';
 import { SkyConditionsHero } from '@/components/SkyConditionsHero';
 import { CelestialSearch } from '@/components/CelestialSearch';
-import { ItineraryTimeline } from '@/components/ItineraryTimeline';
+import { TonightBestTargets } from '@/components/TonightBestTargets';
 import { AltitudeChart } from '@/components/AltitudeChart';
 import { SatellitePasses } from '@/components/SatellitePasses';
 import { MeteorShowers } from '@/components/MeteorShowers';
-import { CelestialGrid } from '@/components/CelestialGrid';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { BortleClass } from '@/lib/types/astro';
 import { StargazeItineraryResponse } from '@/lib/types/itinerary';
@@ -182,17 +181,19 @@ export default function HomePage() {
                 <CelestialSearch targets={plan.searchCatalog} />
               )}
 
-              {/* Itinerary Timeline Windows */}
-              <ItineraryTimeline windows={plan.windows} isLoading={loading} />
+              {/* Tonight's Best Targets (Consolidated Observation Windows & Celestial Targets) */}
+              {plan.targets && (
+                <TonightBestTargets
+                  targets={plan.targets}
+                  windows={plan.windows}
+                  isLoading={loading}
+                />
+              )}
 
               {/* Active Meteor Showers */}
               {plan.meteorShowers && plan.meteorShowers.length > 0 && (
                 <MeteorShowers showers={plan.meteorShowers} />
               )}
-
-
-              {/* Celestial Target Cards */}
-              <CelestialGrid targets={plan.targets} />
 
               {/* Visible Satellite Passes (ISS & Tiangong) */}
               {plan.satellites && plan.satellites.length > 0 && (

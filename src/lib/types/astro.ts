@@ -78,6 +78,25 @@ export interface AltitudePoint {
   isAboveHorizon: boolean;
 }
 
+export type TargetQualityTier = 'excellent' | 'good' | 'poor';
+
+export interface TargetEvaluation {
+  tier: TargetQualityTier;
+  tierLabel: string; // 'Excellent' | 'Good' | 'Poor tonight'
+  bestWindow: string; // e.g. "21:10–23:40" or "Not observable tonight"
+  peakAltitude: number; // in degrees
+  conditionSummary: string; // e.g. "Seeing: Excellent", "Moon interference: Low", "Low altitude + poor seeing"
+  metricType: 'seeing' | 'moon' | 'reason';
+  metricLabel: string; // "Seeing" | "Moon interference" | "Status"
+  metricValue: string; // "Excellent" | "Low" | "Low altitude + poor seeing"
+  poorReason?: string;
+  seeingQuality?: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+  transparencyQuality?: 'Pristine' | 'Good' | 'Hazy' | 'Poor';
+  moonInterference?: 'None' | 'Low' | 'Moderate' | 'High';
+  cloudCover?: number;
+  score: number; // 0-100 score for this target tonight
+}
+
 export interface CelestialTarget {
   id: string;
   name: string;
@@ -93,6 +112,12 @@ export interface CelestialTarget {
   bestWindow?: string;
   notes?: string;
   altitudeHistory?: AltitudePoint[]; // Altitude progression across the night
+  evaluation?: TargetEvaluation;
+  statusTier?: TargetQualityTier;
+  statusLabel?: string;
+  peakAltitude?: number;
+  conditionSummary?: string;
+  poorReason?: string;
 }
 
 export type CelestialBodyType = 'planet' | 'star' | 'constellation' | 'dso' | 'moon';

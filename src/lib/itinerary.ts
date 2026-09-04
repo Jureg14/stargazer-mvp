@@ -10,6 +10,7 @@ import { calculateSearchCatalog } from './astro/celestialSearch';
 import { clusterObservationWindows } from './itinerary/cluster';
 import { generateNightSummary } from './itinerary/formatter';
 import { evaluateHourlyQuality, EvaluatedHour } from './scoring/scoreEngine';
+import { evaluateAllTargets } from './itinerary/targetEvaluator';
 import { BortleClass } from './types/astro';
 import { StargazeItineraryResponse } from './types/itinerary';
 import { fetchWeatherForecast } from './weather/openMeteo';
@@ -20,6 +21,7 @@ export * from './types/weather';
 export * from './types/itinerary';
 export * from './astro/bortle';
 export * from './astro/celestialSearch';
+export * from './itinerary/targetEvaluator';
 
 /**
  * Master itinerary orchestrator for a given observer coordinates, date, and Bortle class.
@@ -80,8 +82,13 @@ export async function generateStargazingPlan(
     evaluatedHours.push(evaluated);
   }
 
-  // Filter night hours for clustering (from sunset to sunrise)
-  const nightHours = evaluatedHours.filter((h) => h.sunAlt <= 0);
+  // Filter night hours strictly for tonight's session (from sunset to sunrise)
+  const sessionStart = twilight.sunset ? twilight.sunset.getTime() - 1800000 : queryDate.getTime() + 6 * 3600000;
+  const sessionEnd = twilight.sunrise ? twilight.sunrise.getTime() + 1800000 : queryDate.getTime() + 18 * 3600000;
+  const nightHours = evaluatedHours.filter((h) => {
+    const t = h.time.getTime();
+    return t >= sessionStart && t <= sessionEnd && h.sunAlt <= 0;
+  });
 
   // 5. Cluster into observation windows
   const windows = clusterObservationWindows(
@@ -92,7 +99,15 @@ export async function generateStargazingPlan(
   );
   const bestWindow = windows.length > 0 ? windows[0] : null;
 
-  // 6. Calculate overall night score & summary
+  // 6. Evaluate all targets with physical condition-dependent heuristics
+  const evaluatedTargets = evaluateAllTargets(
+    allTargets,
+    nightHours.length > 0 ? nightHours : evaluatedHours,
+    moon,
+    userBortle
+  );
+
+  // 7. Calculate overall night score & summary
   const darkHours = nightHours.filter((h) => h.sunAlt <= -12);
   const nightScores = nightHours.map((h) => h.score);
   const avgNightScore = nightScores.length > 0
@@ -130,7 +145,7 @@ export async function generateStargazingPlan(
     windows,
     satellites,
     meteorShowers,
-    targets: allTargets,
+    targets: evaluatedTargets,
     searchCatalog,
     hourlyTimeline: evaluatedHours.map((h) => h.breakdown),
   };
