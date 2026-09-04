@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { format } from 'date-fns';
 import { Header } from '@/components/Header';
 import { LocationSearch, LocationState } from '@/components/LocationSearch';
 import { SkyConditionsHero } from '@/components/SkyConditionsHero';
@@ -15,7 +16,15 @@ import { BortleClass } from '@/lib/types/astro';
 import { StargazeItineraryResponse } from '@/lib/types/itinerary';
 
 export default function HomePage() {
-  const [date, setDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<string>(() => {
+    const now = new Date();
+    // If it's early morning before 05:00, user is in tonight's (yesterday evening's) observing session
+    if (now.getHours() < 5) {
+      const yesterday = new Date(now.getTime() - 24 * 3600 * 1000);
+      return format(yesterday, 'yyyy-MM-dd');
+    }
+    return format(now, 'yyyy-MM-dd');
+  });
   const [bortle, setBortle] = useState<BortleClass>(4);
   const [location, setLocation] = useState<LocationState>({
     lat: -23.5505,

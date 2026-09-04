@@ -24,6 +24,7 @@ const TARGET_COLORS: Record<string, string> = {
 let cachedNowMs = typeof window !== 'undefined' ? Date.now() : 0;
 
 function subscribeCurrentTime(callback: () => void) {
+  cachedNowMs = Date.now();
   const interval = setInterval(() => {
     cachedNowMs = Date.now();
     callback();

@@ -8,6 +8,7 @@ import {
   SearchRiseSet,
 } from 'astronomy-engine';
 import { MoonInfo } from '../types/astro';
+import { getNightSampleTimes } from './twilight';
 
 /**
  * Calculates current Moon status, phase name, illumination, and rise/set times.
@@ -51,20 +52,16 @@ export function calculateMoonInfo(date: Date, observer: Observer): MoonInfo {
  * Calculates Moon trajectory curve and CelestialTarget representation for Altitude Progression Graph.
  */
 export function calculateMoonTarget(date: Date, observer: Observer, moonInfo: MoonInfo) {
-  const altitudeHistory = [];
-  const baseTime = new Date(date);
-  baseTime.setUTCHours(18, 0, 0, 0);
-
-  for (let h = 0; h < 14; h++) {
-    const stepDate = new Date(baseTime.getTime() + h * 3600 * 1000);
+  const sampleTimes = getNightSampleTimes(date, observer);
+  const altitudeHistory = sampleTimes.map((stepDate) => {
     const stepEq = Equator(Body.Moon, stepDate, observer, true, true);
     const stepHor = Horizon(stepDate, observer, stepEq.ra, stepEq.dec, 'normal');
-    altitudeHistory.push({
+    return {
       time: stepDate.toISOString(),
       altitude: Math.round(stepHor.altitude * 10) / 10,
       isAboveHorizon: stepHor.altitude > 0,
-    });
-  }
+    };
+  });
 
   return {
     id: 'moon',

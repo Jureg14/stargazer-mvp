@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Observer } from 'astronomy-engine';
-import { calculateTwilight } from '../src/lib/astro/twilight';
+import { calculateTwilight, getNightSampleTimes } from '../src/lib/astro/twilight';
 import { calculateMoonInfo } from '../src/lib/astro/moon';
 import { encodeGeohash, decodeGeohash } from '../src/lib/cache/geohash';
 import { estimateSeeingFromMeteorology } from '../src/lib/weather/meteoblue';
@@ -184,4 +184,29 @@ test('Observation Window Clustering Engine', () => {
 
   assert.ok(windows.length >= 1, 'Should cluster high-scoring hours into observation windows');
   assert.ok(windows[0].avgScore >= 70, 'Best window should have high average score');
+});
+
+test('getNightSampleTimes spans dusk to dawn across global longitudes', () => {
+  const testLocations = [
+    { name: 'London', lat: 51.5074, lon: -0.1278 },
+    { name: 'São Paulo', lat: -23.5505, lon: -46.6333 },
+    { name: 'Los Angeles', lat: 34.0522, lon: -118.2437 },
+    { name: 'Tokyo', lat: 35.6762, lon: 139.6503 },
+  ];
+
+  const date = new Date('2026-09-03T12:00:00Z');
+
+  for (const loc of testLocations) {
+    const observer = new Observer(loc.lat, loc.lon, 0);
+    const times = getNightSampleTimes(date, observer);
+
+    assert.ok(times.length >= 10, `${loc.name} should have at least 10 hourly samples`);
+    assert.ok(times.length <= 18, `${loc.name} should not exceed 18 samples`);
+
+    // Verify chronological ordering with 1-hour intervals
+    for (let i = 1; i < times.length; i++) {
+      const diffMs = times[i].getTime() - times[i - 1].getTime();
+      assert.strictEqual(diffMs, 3600 * 1000, `${loc.name}: each step should be exactly 1 hour apart`);
+    }
+  }
 });

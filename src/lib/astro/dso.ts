@@ -1,5 +1,6 @@
 import { Body, DefineStar, Equator, Horizon, Observer } from 'astronomy-engine';
 import { AltitudePoint, BortleClass, CelestialTarget } from '../types/astro';
+import { getNightSampleTimes } from './twilight';
 
 export interface DSOSpec {
   id: string;
@@ -99,6 +100,7 @@ export function calculateDSOVisibility(
   userBortle: BortleClass = 4
 ): CelestialTarget[] {
   const targets: CelestialTarget[] = [];
+  const sampleTimes = getNightSampleTimes(date, observer);
 
   for (const dso of DSO_CATALOG) {
     // Check Bortle threshold: if site light pollution exceeds object threshold, mark invisible or skip
@@ -108,21 +110,16 @@ export function calculateDSOVisibility(
     const eq = Equator(dso.starBody, date, observer, true, true);
     const hor = Horizon(date, observer, eq.ra, eq.dec, 'normal');
 
-    // Build 24-hour altitude progression curve (sampled every 1 hour)
-    const altitudeHistory: AltitudePoint[] = [];
-    const baseTime = new Date(date);
-    baseTime.setUTCHours(18, 0, 0, 0); // start at evening 18:00 UTC
-
-    for (let h = 0; h < 14; h++) {
-      const stepDate = new Date(baseTime.getTime() + h * 3600 * 1000);
+    // Build altitude progression curve across dusk-to-dawn night
+    const altitudeHistory: AltitudePoint[] = sampleTimes.map((stepDate) => {
       const stepEq = Equator(dso.starBody, stepDate, observer, true, true);
       const stepHor = Horizon(stepDate, observer, stepEq.ra, stepEq.dec, 'normal');
-      altitudeHistory.push({
+      return {
         time: stepDate.toISOString(),
         altitude: Math.round(stepHor.altitude * 10) / 10,
         isAboveHorizon: stepHor.altitude > 0,
-      });
-    }
+      };
+    });
 
     const altitude = Math.round(hor.altitude * 10) / 10;
     const azimuth = Math.round(hor.azimuth * 10) / 10;
