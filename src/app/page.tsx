@@ -13,6 +13,8 @@ import { MeteorShowers } from '@/components/MeteorShowers';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { BortleClass } from '@/lib/types/astro';
 import { StargazeItineraryResponse } from '@/lib/types/itinerary';
+import { useTelescopeProfile } from '@/lib/hooks/useTelescopeProfile';
+import { TelescopeProfileModal } from '@/components/TelescopeProfileModal';
 
 export default function HomePage() {
   const [date, setDate] = useState<string>(() => {
@@ -31,9 +33,14 @@ export default function HomePage() {
     name: 'São Paulo, Brazil',
   });
   const [plan, setPlan] = useState<StargazeItineraryResponse | null>(null);
+  const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const initialLoadDone = useRef(false);
+
+  // Telescope & Equipment Profile state (persisted to localStorage)
+  const { profile: telescopeProfile, setProfile: setTelescopeProfile } = useTelescopeProfile();
+  const [isTelescopeModalOpen, setIsTelescopeModalOpen] = useState(false);
 
   // Fetch stargazing plan when location, date, or Bortle changes
   const fetchPlan = useCallback(async (loc: LocationState, queryDate: string, userBortle: BortleClass) => {
@@ -121,6 +128,8 @@ export default function HomePage() {
           onDateChange={handleDateChange}
           bortle={bortle}
           onBortleChange={handleBortleChange}
+          telescopeProfile={telescopeProfile}
+          onOpenTelescopeModal={() => setIsTelescopeModalOpen(true)}
         />
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
@@ -173,7 +182,11 @@ export default function HomePage() {
 
               {/* Interactive Altitude Progression Curve */}
               {plan.targets && (
-                <AltitudeChart targets={plan.targets} />
+                <AltitudeChart
+                  targets={plan.targets}
+                  selectedTargetId={selectedTargetId}
+                  onSelectTarget={setSelectedTargetId}
+                />
               )}
 
               {/* Celestial Body Search Bar & Observation Windows Filter */}
@@ -187,6 +200,10 @@ export default function HomePage() {
                   targets={plan.targets}
                   windows={plan.windows}
                   isLoading={loading}
+                  selectedTargetId={selectedTargetId}
+                  onSelectTarget={setSelectedTargetId}
+                  telescopeProfile={telescopeProfile}
+                  onOpenTelescopeModal={() => setIsTelescopeModalOpen(true)}
                 />
               )}
 
@@ -202,6 +219,14 @@ export default function HomePage() {
             </>
           )}
         </main>
+
+        {/* Equipment & Telescope Settings Modal */}
+        <TelescopeProfileModal
+          isOpen={isTelescopeModalOpen}
+          onClose={() => setIsTelescopeModalOpen(false)}
+          profile={telescopeProfile}
+          onSaveProfile={setTelescopeProfile}
+        />
       </div>
 
       {/* Footer */}

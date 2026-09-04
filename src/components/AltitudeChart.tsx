@@ -6,6 +6,8 @@ import { CelestialTarget } from '@/lib/types/astro';
 
 interface AltitudeChartProps {
   targets: CelestialTarget[];
+  selectedTargetId?: string | null;
+  onSelectTarget?: (id: string | null) => void;
 }
 
 const TARGET_COLORS: Record<string, string> = {
@@ -35,9 +37,22 @@ function subscribeCurrentTime(callback: () => void) {
 const getClientNowMs = () => cachedNowMs;
 const getServerNowMs = () => null;
 
-export function AltitudeChart({ targets }: AltitudeChartProps) {
-  const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
+export function AltitudeChart({
+  targets,
+  selectedTargetId: controlledSelectedTargetId,
+  onSelectTarget,
+}: AltitudeChartProps) {
+  const [internalSelectedTargetId, setInternalSelectedTargetId] = useState<string | null>(null);
   const [hoveredTargetId, setHoveredTargetId] = useState<string | null>(null);
+
+  const selectedTargetId = controlledSelectedTargetId !== undefined ? controlledSelectedTargetId : internalSelectedTargetId;
+  const handleSelectTarget = (id: string | null) => {
+    if (onSelectTarget) {
+      onSelectTarget(id);
+    } else {
+      setInternalSelectedTargetId(id);
+    }
+  };
 
   const nowMs = useSyncExternalStore(subscribeCurrentTime, getClientNowMs, getServerNowMs);
   const currentTime = nowMs !== null ? new Date(nowMs) : null;
@@ -74,7 +89,7 @@ export function AltitudeChart({ targets }: AltitudeChartProps) {
   const activeTarget = targetsWithCurves.find((t) => t.id === activeTargetId);
 
   return (
-    <div className="glass-panel rounded-2xl p-5 space-y-4">
+    <div id="altitude-chart" className="glass-panel rounded-2xl p-5 space-y-4 scroll-mt-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
           <span>📈</span> Celestial Altitude Progression (Dusk to Dawn)
@@ -101,7 +116,7 @@ export function AltitudeChart({ targets }: AltitudeChartProps) {
           return (
             <button
               key={t.id}
-              onClick={() => setSelectedTargetId(selectedTargetId === t.id ? null : t.id)}
+              onClick={() => handleSelectTarget(selectedTargetId === t.id ? null : t.id)}
               onMouseEnter={() => setHoveredTargetId(t.id)}
               onMouseLeave={() => setHoveredTargetId(null)}
               className={`text-xs px-2.5 py-1 rounded-lg border font-medium flex items-center gap-1.5 transition-all cursor-pointer ${

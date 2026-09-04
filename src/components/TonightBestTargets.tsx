@@ -4,11 +4,17 @@ import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { CelestialTarget, TargetQualityTier } from '@/lib/types/astro';
 import { ObservationWindow } from '@/lib/types/itinerary';
+import { TelescopeProfile } from '@/lib/types/equipment';
+import { calculateTargetOptics } from '@/lib/astro/optics';
 
 interface TonightBestTargetsProps {
   targets: CelestialTarget[];
   windows?: ObservationWindow[];
   isLoading?: boolean;
+  selectedTargetId?: string | null;
+  onSelectTarget?: (targetId: string | null) => void;
+  telescopeProfile?: TelescopeProfile;
+  onOpenTelescopeModal?: () => void;
 }
 
 function getAzimuthDirection(deg: number): string {
@@ -17,11 +23,30 @@ function getAzimuthDirection(deg: number): string {
   return directions[index];
 }
 
-export function TonightBestTargets({ targets, windows = [], isLoading = false }: TonightBestTargetsProps) {
+export function TonightBestTargets({
+  targets,
+  windows = [],
+  isLoading = false,
+  selectedTargetId,
+  onSelectTarget,
+  telescopeProfile,
+  onOpenTelescopeModal,
+}: TonightBestTargetsProps) {
   const [selectedTier, setSelectedTier] = useState<'all' | TargetQualityTier>('all');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'planet' | 'dso' | 'moon'>('all');
   const [expandedTargetId, setExpandedTargetId] = useState<string | null>(null);
   const [activeModalWindow, setActiveModalWindow] = useState<ObservationWindow | null>(null);
+
+  const handleTargetChartClick = (id: string) => {
+    const nextId = selectedTargetId === id ? null : id;
+    onSelectTarget?.(nextId);
+    if (nextId) {
+      const chartEl = document.getElementById('altitude-chart');
+      if (chartEl) {
+        chartEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  };
 
   // Derive counts
   const counts = useMemo(() => {
@@ -98,9 +123,28 @@ export function TonightBestTargets({ targets, windows = [], isLoading = false }:
           </p>
         </div>
 
-        {/* Global Observation Windows & Breakdown Button */}
-        {windows.length > 0 && (
-          <div className="flex items-center gap-2">
+        {/* Header Actions: Telescope Setup & Global Observation Windows */}
+        <div className="flex flex-wrap items-center gap-2">
+          {onOpenTelescopeModal && (
+            <button
+              onClick={onOpenTelescopeModal}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-xl border font-mono flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                telescopeProfile?.enabled
+                  ? 'bg-indigo-950/80 border-indigo-500/60 text-indigo-200 hover:border-indigo-400 hover:text-white hover:shadow-indigo-500/20'
+                  : 'bg-slate-900/90 border-slate-700/80 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+              }`}
+              title="Configure your telescope aperture and eyepieces"
+            >
+              <span>🔭</span>
+              <span>
+                {telescopeProfile?.enabled
+                  ? `${telescopeProfile.apertureMm}mm (${telescopeProfile.eyepieces.length} EPs)`
+                  : 'Setup Telescope'}
+              </span>
+            </button>
+          )}
+
+          {windows.length > 0 && (
             <button
               onClick={() => setActiveModalWindow(windows[0])}
               className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-900/90 border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 hover:text-white font-mono flex items-center gap-2 transition-all cursor-pointer shadow-sm hover:shadow-cyan-500/10"
@@ -111,8 +155,8 @@ export function TonightBestTargets({ targets, windows = [], isLoading = false }:
                 📊 Score {windows[0].avgScore}/100
               </span>
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Filter Tabs & Category Pills */}
@@ -222,15 +266,21 @@ export function TonightBestTargets({ targets, windows = [], isLoading = false }:
           const peakAlt = t.peakAltitude ?? evalData?.peakAltitude ?? Math.round(t.altitude);
           const conditionSummary = t.conditionSummary || evalData?.conditionSummary || (tier === 'poor' ? (t.poorReason || 'Low altitude + poor seeing') : t.type === 'planet' ? 'Seeing: Good' : 'Moon interference: Low');
           const isExpanded = expandedTargetId === t.id;
+          const isChartSelected = selectedTargetId === t.id;
           const azDir = getAzimuthDirection(t.azimuth);
+          const opticsRec = telescopeProfile?.enabled ? calculateTargetOptics(telescopeProfile, t) : null;
 
-          // Colored top border per status tier
+          // Colored top border per status tier & selection state
           const cardBorderStyles =
             tier === 'excellent'
               ? 'border-t-4 border-t-emerald-400 border-x border-b border-slate-800/80 shadow-lg shadow-emerald-950/20 hover:border-t-emerald-300'
               : tier === 'good'
               ? 'border-t-4 border-t-amber-400 border-x border-b border-slate-800/80 shadow-lg shadow-amber-950/20 hover:border-t-amber-300'
               : 'border-t-4 border-t-rose-500 border-x border-b border-slate-900/80 bg-slate-950/40 opacity-85 hover:border-t-rose-400';
+
+          const selectionRing = isChartSelected
+            ? 'ring-2 ring-cyan-400 shadow-cyan-500/20 scale-[1.01]'
+            : '';
 
           const headerColor =
             tier === 'excellent'
@@ -242,13 +292,17 @@ export function TonightBestTargets({ targets, windows = [], isLoading = false }:
           return (
             <div
               key={t.id}
-              className={`glass-panel glass-panel-hover rounded-2xl p-4 sm:p-5 transition-all flex flex-col justify-between ${cardBorderStyles}`}
+              className={`glass-panel glass-panel-hover rounded-2xl p-4 sm:p-5 transition-all flex flex-col justify-between ${cardBorderStyles} ${selectionRing}`}
             >
               <div>
-                {/* Target Title Row: Target Name — Quality Rating (no circle emojis, colored top border instead) */}
+                {/* Target Title Row: Target Name — Quality Rating */}
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl" title={t.type}>
+                  <div
+                    className="flex items-center gap-2 cursor-pointer group select-none"
+                    onClick={() => handleTargetChartClick(t.id)}
+                    title={isChartSelected ? "Click to unhighlight in Altitude Chart" : "Click to highlight trajectory in Altitude Progression Chart"}
+                  >
+                    <span className="text-xl transition-transform group-hover:scale-110" title={t.type}>
                       {t.type === 'planet'
                         ? '🪐'
                         : t.type === 'milkyway'
@@ -258,7 +312,7 @@ export function TonightBestTargets({ targets, windows = [], isLoading = false }:
                         : '✨'}
                     </span>
                     <div>
-                      <h3 className="font-bold text-base sm:text-lg text-white flex items-center gap-2 flex-wrap">
+                      <h3 className="font-bold text-base sm:text-lg text-white flex items-center gap-2 flex-wrap group-hover:text-cyan-200 transition-colors">
                         <span>{t.name}</span>
                         <span className="text-slate-500">—</span>
                         <span className={`text-sm sm:text-base font-semibold ${headerColor}`}>
@@ -271,11 +325,29 @@ export function TonightBestTargets({ targets, windows = [], isLoading = false }:
                     </div>
                   </div>
 
-                  {evalData?.score !== undefined && (
-                    <span className="font-mono text-[11px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400" title="Target Suitability Score">
-                      {evalData.score}/100
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTargetChartClick(t.id);
+                      }}
+                      title={isChartSelected ? "Click to unhighlight in Altitude Chart" : "Highlight curve in Altitude Progression Chart"}
+                      className={`text-[11px] font-mono px-2 py-0.5 rounded-lg border transition-all flex items-center gap-1 cursor-pointer ${
+                        isChartSelected
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-sm shadow-cyan-500/30 font-semibold'
+                          : 'bg-slate-900/90 border-slate-800 text-slate-400 hover:text-cyan-300 hover:border-cyan-500/50'
+                      }`}
+                    >
+                      <span>📈</span>
+                      <span>{isChartSelected ? 'Highlighted' : 'View in Chart'}</span>
+                    </button>
+
+                    {evalData?.score !== undefined && (
+                      <span className="font-mono text-[11px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400" title="Target Suitability Score">
+                        {evalData.score}/100
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Primary Telemetry Rows matching requested example format */}
@@ -320,6 +392,21 @@ export function TonightBestTargets({ targets, windows = [], isLoading = false }:
                     </span>
                   </div>
                 </div>
+
+                {/* Tailored Eyepiece & Optics Recommendation Row */}
+                {opticsRec && (
+                  <div className="mt-2.5 py-2 px-3 rounded-xl bg-indigo-950/50 border border-indigo-700/50 flex items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-base flex-shrink-0">🔭</span>
+                      <span className="text-indigo-200 font-medium truncate">
+                        {opticsRec.summaryText}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-900/80 border border-indigo-600/60 text-indigo-200 flex-shrink-0 font-semibold shadow-sm">
+                      {Math.round(opticsRec.recommendedEyepiece.magnification)}× • {opticsRec.recommendedEyepiece.exitPupilMm}mm pupil
+                    </span>
+                  </div>
+                )}
 
                 {/* Notes Summary */}
                 {t.notes && (
@@ -371,6 +458,64 @@ export function TonightBestTargets({ targets, windows = [], isLoading = false }:
                       <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-slate-900/60 border border-slate-800 text-[11px] text-slate-300">
                         <span>Window Cloud Cover:</span>
                         <span className="font-mono font-semibold text-slate-200">{evalData.cloudCover}%</span>
+                      </div>
+                    )}
+
+                    {/* Detailed Eyepiece Kit Magnification Breakdown */}
+                    {opticsRec && (
+                      <div className="pt-2.5 border-t border-slate-800/80 space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-indigo-300 font-semibold flex items-center gap-1">
+                            <span>🔭</span> Optics Kit ({telescopeProfile?.apertureMm}mm f/{(telescopeProfile!.focalLengthMm / telescopeProfile!.apertureMm).toFixed(1)})
+                          </span>
+                          {onOpenTelescopeModal && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenTelescopeModal();
+                              }}
+                              className="text-cyan-400 hover:text-cyan-300 underline cursor-pointer text-[10px]"
+                            >
+                              Edit Eyepieces
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="space-y-1 font-mono text-[11px]">
+                          {opticsRec.allCalculations.map((calc) => (
+                            <div
+                              key={`${calc.eyepiece.id}-${calc.barlowMultiplier || 1}`}
+                              className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-[11px] ${
+                                calc.isRecommended
+                                  ? 'bg-indigo-950/80 border-indigo-500/70 text-indigo-200 shadow-sm'
+                                  : 'bg-slate-900/60 border-slate-800/70 text-slate-400'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-slate-200">{calc.displayName}</span>
+                                {calc.barlowMultiplier && calc.barlowMultiplier > 1 && (
+                                  <span className="text-[9px] bg-purple-950/80 border border-purple-500/60 text-purple-300 px-1 py-0.2 rounded font-sans font-semibold">
+                                    {calc.effectiveFocalLengthMm}mm eq
+                                  </span>
+                                )}
+                                <span className="text-slate-400 font-sans text-[10px]">({calc.roleLabel.split(' ')[0]})</span>
+                                {calc.isRecommended && (
+                                  <span className="text-[9px] bg-cyan-950 border border-cyan-600/70 text-cyan-300 px-1.5 py-0.2 rounded font-sans font-bold">
+                                    ★ Best Choice
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span><strong>{Math.round(calc.magnification)}×</strong></span>
+                                <span className="text-slate-600">•</span>
+                                <span>{calc.exitPupilMm}mm pupil</span>
+                                <span className="text-slate-600">•</span>
+                                <span>{calc.trueFovDeg}° FOV</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
