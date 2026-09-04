@@ -6,7 +6,6 @@ import { LocationSearch, LocationState } from '@/components/LocationSearch';
 import { SkyConditionsHero } from '@/components/SkyConditionsHero';
 import { CelestialSearch } from '@/components/CelestialSearch';
 import { ItineraryTimeline } from '@/components/ItineraryTimeline';
-import { HourlyTimelineBar } from '@/components/HourlyTimelineBar';
 import { AltitudeChart } from '@/components/AltitudeChart';
 import { SatellitePasses } from '@/components/SatellitePasses';
 import { MeteorShowers } from '@/components/MeteorShowers';
@@ -182,10 +181,6 @@ export default function HomePage() {
                 <MeteorShowers showers={plan.meteorShowers} />
               )}
 
-              {/* Hourly Sky Breakdown Spectrum */}
-              {plan.hourlyTimeline && (
-                <HourlyTimelineBar timeline={plan.hourlyTimeline} />
-              )}
 
               {/* Celestial Target Cards */}
               <CelestialGrid targets={plan.targets} />
