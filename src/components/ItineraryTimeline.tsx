@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ObservationWindow } from '@/lib/types/itinerary';
-import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface ItineraryTimelineProps {
   windows: ObservationWindow[];
@@ -11,17 +10,16 @@ interface ItineraryTimelineProps {
 }
 
 export function ItineraryTimeline({ windows, isLoading }: ItineraryTimelineProps) {
-  const { language, t } = useLanguage();
   const [activeModalWindow, setActiveModalWindow] = useState<ObservationWindow | null>(null);
 
   if (isLoading) {
     return (
       <div className="space-y-4">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <span>⏱️</span> {t.itinerary.title}
+          <span>⏱️</span> Observation Windows
         </h2>
         <div className="glass-panel rounded-2xl p-6 text-center animate-pulse">
-          <p className="text-sm text-slate-400">{language === 'pt' ? 'Calculando efemérides celestes e modelos meteorológicos...' : 'Calculating celestial ephemeris and weather models...'}</p>
+          <p className="text-sm text-slate-400">Calculating celestial ephemeris and weather models...</p>
         </div>
       </div>
     );
@@ -31,13 +29,13 @@ export function ItineraryTimeline({ windows, isLoading }: ItineraryTimelineProps
     return (
       <div className="space-y-4">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <span>⏱️</span> {t.itinerary.title}
+          <span>⏱️</span> Observation Windows
         </h2>
         <div className="glass-panel rounded-2xl p-6 text-center">
           <div className="text-3xl mb-2">☁️</div>
-          <h3 className="font-semibold text-white mb-1">{language === 'pt' ? 'Nenhuma Janela Ideal Encontrada' : 'No Optimal Viewing Windows Found'}</h3>
+          <h3 className="font-semibold text-white mb-1">No Optimal Viewing Windows Found</h3>
           <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
-            {t.itinerary.noWindows}
+            Cloud cover or light conditions exceed prime observing thresholds tonight. Consider checking another date or tracking daytime/planetary culminations.
           </p>
         </div>
       </div>
@@ -48,10 +46,10 @@ export function ItineraryTimeline({ windows, isLoading }: ItineraryTimelineProps
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <span>⏱️</span> {t.itinerary.title}
+          <span>⏱️</span> Observation Windows
         </h2>
         <span className="text-xs font-mono text-slate-400">
-          {windows.length} {language === 'pt' ? 'janela(s)' : (windows.length === 1 ? 'window' : 'windows')}
+          {windows.length} {windows.length === 1 ? 'window' : 'windows'} identified
         </span>
       </div>
 
@@ -85,15 +83,15 @@ export function ItineraryTimeline({ windows, isLoading }: ItineraryTimelineProps
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setActiveModalWindow(win)}
-                    title={language === 'pt' ? 'Clique para ver o detalhamento do cálculo' : 'Click for score calculation breakdown'}
+                    title="Click for score calculation breakdown"
                     className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-900 border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 hover:text-white font-mono flex items-center gap-1.5 transition-all cursor-pointer shadow-sm hover:shadow-cyan-500/10"
                   >
-                    <span>{language === 'pt' ? 'Qualidade:' : 'Quality:'} <strong>{win.avgScore}/100</strong></span>
-                    <span className="text-[10px] bg-cyan-950/80 px-1 py-0.2 rounded text-cyan-400">ℹ {language === 'pt' ? 'detalhes' : 'breakdown'}</span>
+                    <span>Quality: <strong>{win.avgScore}/100</strong></span>
+                    <span className="text-[10px] bg-cyan-950/80 px-1 py-0.2 rounded text-cyan-400">ℹ breakdown</span>
                   </button>
 
                   <span className="text-xs font-medium px-2 py-1 rounded-lg bg-indigo-950/60 border border-indigo-800/40 text-indigo-300">
-                    {win.avgCloud}% {language === 'pt' ? 'Nuvens' : 'Cloud'}
+                    {win.avgCloud}% Cloud
                   </span>
                 </div>
               </div>
@@ -107,7 +105,7 @@ export function ItineraryTimeline({ windows, isLoading }: ItineraryTimelineProps
 
               {/* Highlights & Target Tags */}
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-slate-400 font-medium">{language === 'pt' ? 'Alvos Visíveis:' : 'Visible Targets:'}</span>
+                <span className="text-xs text-slate-400 font-medium">Visible Targets:</span>
                 {win.targets.map((t) => (
                   <span
                     key={t.id}
@@ -142,10 +140,10 @@ export function ItineraryTimeline({ windows, isLoading }: ItineraryTimelineProps
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <span>📊</span> {language === 'pt' ? 'Detalhamento do Cálculo de Qualidade' : 'Quality Score Calculation Breakdown'}
+                  <span>📊</span> Quality Score Calculation Breakdown
                 </h3>
                 <p className="text-xs text-slate-400 font-mono mt-0.5">
-                  {language === 'pt' ? 'Janela:' : 'Window:'} {format(new Date(activeModalWindow.start), 'HH:mm')} – {format(new Date(activeModalWindow.end), 'HH:mm')} ({Math.round(activeModalWindow.durationMinutes / 60)}h)
+                  Window: {format(new Date(activeModalWindow.start), 'HH:mm')} – {format(new Date(activeModalWindow.end), 'HH:mm')} ({Math.round(activeModalWindow.durationMinutes / 60)}h)
                 </p>
               </div>
               <button
@@ -158,7 +156,7 @@ export function ItineraryTimeline({ windows, isLoading }: ItineraryTimelineProps
 
             {/* Score Metric Formula Summary */}
             <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
-              <span className="text-xs text-slate-300 font-medium">{language === 'pt' ? 'Qualidade Composta de Observação:' : 'Composite Observation Quality:'}</span>
+              <span className="text-xs text-slate-300 font-medium">Composite Observation Quality:</span>
               <span className="text-lg font-bold font-mono text-cyan-300 bg-cyan-950/80 border border-cyan-800/60 px-3 py-0.5 rounded-lg">
                 {activeModalWindow.avgScore} / 100
               </span>
@@ -167,7 +165,7 @@ export function ItineraryTimeline({ windows, isLoading }: ItineraryTimelineProps
             {/* Metric Factors Breakdown List */}
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
               <div className="flex items-center justify-between text-xs px-3 py-1.5 rounded-lg bg-slate-900/60 text-slate-400 font-mono">
-                <span>{language === 'pt' ? 'Pontuação Neutra Base' : 'Base Neutral Starting Rating'}</span>
+                <span>Base Neutral Starting Rating</span>
                 <span className="text-slate-300 font-bold">+50 pts</span>
               </div>
 
@@ -212,12 +210,12 @@ export function ItineraryTimeline({ windows, isLoading }: ItineraryTimelineProps
 
             {/* Modal Footer Note */}
             <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-              <span>{language === 'pt' ? 'Escala heurística: 0 (ruim) a 100 (excelente)' : 'Heuristic score range: 0 (poor) to 100 (pristine)'}</span>
+              <span>Heuristic score range: 0 (poor) to 100 (pristine)</span>
               <button
                 onClick={() => setActiveModalWindow(null)}
                 className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium cursor-pointer transition-colors"
               >
-                {language === 'pt' ? 'Fechar' : 'Close'}
+                Close
               </button>
             </div>
           </div>
@@ -226,4 +224,3 @@ export function ItineraryTimeline({ windows, isLoading }: ItineraryTimelineProps
     </div>
   );
 }
-

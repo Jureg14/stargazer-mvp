@@ -20,7 +20,6 @@ export * from './types/weather';
 export * from './types/itinerary';
 export * from './astro/bortle';
 export * from './astro/celestialSearch';
-import { Language } from './i18n/translations';
 
 /**
  * Master itinerary orchestrator for a given observer coordinates, date, and Bortle class.
@@ -30,10 +29,9 @@ export async function generateStargazingPlan(
   lon: number,
   dateStr: string, // YYYY-MM-DD
   locationName?: string,
-  userBortle: BortleClass = 4,
-  lang: Language = 'en'
+  userBortle: BortleClass = 4
 ): Promise<StargazeItineraryResponse> {
-  const cacheKey = cacheEngine.generateKey('stargaze', lat, lon, dateStr, `bortle-${userBortle}-lang-${lang}`);
+  const cacheKey = cacheEngine.generateKey('stargaze', lat, lon, dateStr, `bortle-${userBortle}`);
   const cachedPlan = cacheEngine.get<StargazeItineraryResponse>(cacheKey);
 
   if (cachedPlan) {
@@ -90,8 +88,7 @@ export async function generateStargazingPlan(
     nightHours.length > 0 ? nightHours : evaluatedHours,
     moon,
     satellites,
-    meteorShowers,
-    lang
+    meteorShowers
   );
   const bestWindow = windows.length > 0 ? windows[0] : null;
 
@@ -103,17 +100,15 @@ export async function generateStargazingPlan(
     : 0;
 
   const peakShower = meteorShowers.find((m) => m.isPeakNight);
-  const peakShowerName = peakShower ? (lang === 'pt' ? `Chuva de Meteoros ${peakShower.name} (${peakShower.effectiveZhr} ZHR)` : `${peakShower.name} Meteor Shower (${peakShower.effectiveZhr} ZHR)`) : undefined;
+  const peakShowerName = peakShower ? `${peakShower.name} Meteor Shower (${peakShower.effectiveZhr} ZHR)` : undefined;
 
   const nightSummary = generateNightSummary(
     avgNightScore,
     bestWindow,
     darkHours.length,
     satellites.length,
-    peakShowerName,
-    lang
+    peakShowerName
   );
-
 
   const bortleInfo = getBortleInfo(userBortle);
 

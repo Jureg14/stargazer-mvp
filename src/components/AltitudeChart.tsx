@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { CelestialTarget } from '@/lib/types/astro';
-import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface AltitudeChartProps {
   targets: CelestialTarget[];
@@ -23,7 +22,6 @@ const TARGET_COLORS: Record<string, string> = {
 };
 
 export function AltitudeChart({ targets }: AltitudeChartProps) {
-  const { language, t } = useLanguage();
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [hoveredTargetId, setHoveredTargetId] = useState<string | null>(null);
 
@@ -53,10 +51,10 @@ export function AltitudeChart({ targets }: AltitudeChartProps) {
     <div className="glass-panel rounded-2xl p-5 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <span>📈</span> {t.altitudeChart.title}
+          <span>📈</span> Celestial Altitude Progression (Dusk to Dawn)
         </h2>
         <span className="text-xs text-slate-400">
-          {t.altitudeChart.subtitle}
+          Hover or click any curve or legend pill to highlight line trajectory
         </span>
       </div>
 
@@ -88,7 +86,7 @@ export function AltitudeChart({ targets }: AltitudeChartProps) {
         })}
       </div>
 
-      {/* Target Info Bar */}
+      {/* Target Info Bar (Fixed height to prevent layout shift & hover flickering) */}
       <div className="h-9 bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 text-xs flex items-center justify-between text-slate-200 transition-colors duration-150">
         {activeTarget ? (
           <>
@@ -106,13 +104,13 @@ export function AltitudeChart({ targets }: AltitudeChartProps) {
             <div className="flex items-center gap-3 text-slate-300 font-mono">
               <span>Alt: <strong>{activeTarget.altitude}°</strong></span>
               <span>Mag: <strong>{activeTarget.magnitude}</strong></span>
-              <span className="text-cyan-300">{activeTarget.isOptimal ? (language === 'pt' ? '★ Visão Ideal' : '★ Optimal View') : activeTarget.notes || ''}</span>
+              <span className="text-cyan-300">{activeTarget.isOptimal ? '★ Optimal View' : activeTarget.notes || ''}</span>
             </div>
           </>
         ) : (
           <div className="text-slate-500 text-xs flex items-center gap-2 w-full justify-center font-mono">
             <span>✨</span>
-            <span>{language === 'pt' ? 'Passe o mouse ou clique em uma linha para ver detalhes' : 'Hover or click any line or legend pill to inspect celestial altitude & stats'}</span>
+            <span>Hover or click any line or legend pill to inspect celestial altitude & stats</span>
           </div>
         )}
       </div>
@@ -177,7 +175,7 @@ export function AltitudeChart({ targets }: AltitudeChartProps) {
                   onMouseEnter={() => setHoveredTargetId(t.id)}
                   onMouseLeave={() => setHoveredTargetId(null)}
                 >
-                  {/* Invisible wide hit-area stroke */}
+                  {/* Invisible wide hit-area stroke for effortless mouse hover */}
                   <path
                     d={pathData}
                     fill="none"
@@ -228,4 +226,3 @@ export function AltitudeChart({ targets }: AltitudeChartProps) {
     </div>
   );
 }
-

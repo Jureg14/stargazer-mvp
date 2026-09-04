@@ -22,8 +22,6 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 };
 
-import { LanguageProvider } from "@/lib/i18n/LanguageContext";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -36,9 +34,8 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <LanguageProvider>{children}</LanguageProvider>
+        {children}
       </body>
     </html>
   );
 }
-

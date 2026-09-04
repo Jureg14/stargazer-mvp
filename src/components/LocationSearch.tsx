@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export interface LocationState {
   lat: number;
@@ -29,7 +28,6 @@ export function LocationSearch({
   onLocationChange,
   isLoading,
 }: LocationSearchProps) {
-  const { t } = useLanguage();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GeocodeItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -90,7 +88,7 @@ export function LocationSearch({
 
   const handleUseGeolocation = () => {
     if (!navigator.geolocation) {
-      alert(t.location.geoErrorNotSupported);
+      alert('Geolocation is not supported by your browser');
       return;
     }
 
@@ -101,13 +99,13 @@ export function LocationSearch({
         onLocationChange({
           lat: Math.round(pos.coords.latitude * 10000) / 10000,
           lon: Math.round(pos.coords.longitude * 10000) / 10000,
-          name: t.location.currentLocationName,
+          name: 'My Current Location',
         });
         setQuery('');
       },
       (err) => {
         setIsLocating(false);
-        alert(`${t.location.geoErrorPrefix}${err.message}`);
+        alert(`Geolocation error: ${err.message}`);
       },
       { timeout: 10000 }
     );
@@ -134,13 +132,13 @@ export function LocationSearch({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-wider text-slate-400">{t.location.observingSite}</span>
+              <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Observing Site</span>
               <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/40">
                 {location.lat >= 0 ? `${location.lat}°N` : `${Math.abs(location.lat)}°S`}, {location.lon >= 0 ? `${location.lon}°E` : `${Math.abs(location.lon)}°W`}
               </span>
             </div>
             <p className="text-sm sm:text-base font-semibold text-white truncate max-w-[280px] sm:max-w-md">
-              {location.name || t.location.customCoords}
+              {location.name || 'Custom Coordinates'}
             </p>
           </div>
         </div>
@@ -151,7 +149,7 @@ export function LocationSearch({
           <div className="relative flex-1 sm:w-64">
             <input
               type="text"
-              placeholder={t.location.searchPlaceholder}
+              placeholder="Search city (e.g. London, Tokyo)..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onFocus={() => results.length > 0 && setIsOpen(true)}
@@ -191,15 +189,14 @@ export function LocationSearch({
           <button
             onClick={handleUseGeolocation}
             disabled={isLocating || isLoading}
-            title={t.location.myLocation}
+            title="Use current GPS geolocation"
             className="px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-200 hover:text-white text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap disabled:opacity-50 active:scale-95 cursor-pointer"
           >
             <span>{isLocating ? '📡' : '🎯'}</span>
-            <span className="hidden sm:inline">{isLocating ? t.location.locating : t.location.myLocation}</span>
+            <span className="hidden sm:inline">{isLocating ? 'Locating...' : 'My Location'}</span>
           </button>
         </div>
       </div>
     </div>
   );
 }
-
